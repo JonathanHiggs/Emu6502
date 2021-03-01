@@ -21,4 +21,5 @@
             }
         ]
     },
+    "gtest-adapter.debugConfig": "(gdb) Launch Tests",
 }

@@ -53,7 +53,7 @@ namespace Emu
             return value;
         }
 
-        Byte ReadByte(uint32 & cycles, Byte address, Memory & memory)
+        Byte ReadByte(uint32 & cycles, Word address, Memory & memory)
         {
             auto value = memory.ReadByte(address);
             --cycles;
@@ -70,7 +70,14 @@ namespace Emu
             return value;
         }
 
-        void WriteWord(uint32 & cycles, uint32 address, Word value, Memory & memory)
+        Word ReadWord(uint32 & cycles, Word address, Memory & memory)
+        {
+            auto value = memory.ReadWord(address);
+            cycles -= 2;
+            return value;
+        }
+
+        void WriteWord(uint32 & cycles, Word address, Word value, Memory & memory)
         {
             memory.WriteWord(address, value);
             cycles -= 2;
@@ -89,17 +96,29 @@ namespace Emu
         static constexpr Byte INS_LDA_ABS   = 0xAD;
         static constexpr Byte INS_LDA_ABSX  = 0xBD;
         static constexpr Byte INS_LDA_ABSY  = 0xB9;
+        static constexpr Byte INS_LDA_INDX  = 0xA1;
+        static constexpr Byte INS_LDA_INDY  = 0xB1;
+
+        static constexpr Byte INS_LDX_IM    = 0xA2;
+        static constexpr Byte INS_LDX_ZP    = 0xA6;
+        static constexpr Byte INS_LDX_ZPY   = 0xB2;
+        static constexpr Byte INS_LDX_ABS   = 0xAE;
+        static constexpr Byte INS_LDX_ABSY  = 0xBE;
+
 
         static constexpr Byte INS_JSR       = 0x20;
 
-        void Execute(uint32 cycles, Memory & memory)
+        uint32 Execute(uint32 cycles, Memory & memory)
         {
+            uint32 startCycles = cycles;
+
             while (cycles > 0)
             {
-                if (cycles >= std::numeric_limits<uint32>::max() - 10)
+                if (cycles > startCycles)
                 {
+                    // Detect cycles overflow
                     CycleOverflow = 1;
-                    return;
+                    return startCycles - cycles;
                 }
 
                 auto instruction = FetchByte(cycles, memory);
@@ -128,6 +147,56 @@ namespace Emu
                     LDASetStatus();
                 } break;
 
+                case INS_LDA_ABS:
+                {
+                    auto address = FetchWord(cycles, memory);
+                    A = ReadByte(cycles, address, memory);
+                    LDASetStatus();
+                } break;
+
+                case INS_LDA_ABSX:
+                {
+                    auto address = FetchWord(cycles, memory);
+                    cycles -= ((address & 0xFF) + X) > 0xFF ? 1 : 0;
+                    address += X;
+                    A = ReadByte(cycles, address, memory);
+                    LDASetStatus();
+                } break;
+
+                case INS_LDA_ABSY:
+                {
+                    auto address = FetchWord(cycles, memory);
+                    cycles -= ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
+                    address += Y;
+                    A = ReadByte(cycles, address, memory);
+                    LDASetStatus();
+                } break;
+
+                case INS_LDA_INDX:
+                {
+                    auto zeroPageAddress = (Word)FetchByte(cycles, memory);
+                    --cycles;
+                    zeroPageAddress += X;
+                    auto address = ReadWord(cycles, zeroPageAddress, memory);
+                    A = ReadByte(cycles, address, memory);
+                    LDASetStatus();
+                } break;
+
+                case INS_LDA_INDY:
+                {
+                    auto zeroPageAddress = (Word)FetchByte(cycles, memory);
+                    auto address = ReadWord(cycles, zeroPageAddress, memory);
+                    cycles -= ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
+                    address += Y;
+                    A = ReadByte(cycles, address, memory);
+                    LDASetStatus();
+                } break;
+
+                case INS_LDX_IM:
+                {
+
+                } break;
+
                 case INS_JSR:
                 {
                     auto address = FetchWord(cycles, memory);
@@ -141,10 +210,12 @@ namespace Emu
                 {
                     UnhandledInstruction = 1;
                     fmt::print("Instruction not handled: {:x}\n", instruction);
-                    return;
+                    return startCycles - cycles;
                 }
                 }
             }
+
+            return startCycles - cycles;
         }
 
         void DumpState()
