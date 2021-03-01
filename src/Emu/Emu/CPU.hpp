@@ -83,10 +83,10 @@ namespace Emu
             cycles -= 2;
         }
 
-        void LDASetStatus()
+        void LDSetStatus(Byte CPU::*reg)
         {
-            ZeroFlag = A == 0;
-            NegativeFlag = (A & 1 << 7) > 0;
+            ZeroFlag = *this.*reg == 0;
+            NegativeFlag = (*this.*reg & 1 << 7) > 0;
         }
 
         // opcodes
@@ -104,6 +104,12 @@ namespace Emu
         static constexpr Byte INS_LDX_ZPY   = 0xB2;
         static constexpr Byte INS_LDX_ABS   = 0xAE;
         static constexpr Byte INS_LDX_ABSY  = 0xBE;
+
+        static constexpr Byte INS_LDY_IM    = 0xA0;
+        static constexpr Byte INS_LDY_ZP    = 0xA4;
+        static constexpr Byte INS_LDY_ZPY   = 0xB4;
+        static constexpr Byte INS_LDY_ABS   = 0xAC;
+        static constexpr Byte INS_LDY_ABSY  = 0xBC;
 
 
         static constexpr Byte INS_JSR       = 0x20;
@@ -125,17 +131,18 @@ namespace Emu
 
                 switch (instruction)
                 {
+                // LDA
                 case INS_LDA_IM:
                 {
                     A = FetchByte(cycles, memory);
-                    LDASetStatus();
+                    LDSetStatus(&CPU::A);
                 } break;
 
                 case INS_LDA_ZP:
                 {
                     auto zeroPageAddress = FetchByte(cycles, memory);
                     A = ReadByte(cycles, zeroPageAddress, memory);
-                    LDASetStatus();
+                    LDSetStatus(&CPU::A);
                 } break;
 
                 case INS_LDA_ZPX:
@@ -144,14 +151,14 @@ namespace Emu
                     zeroPageAddress += X;
                     --cycles;
                     A = ReadByte(cycles, zeroPageAddress, memory);
-                    LDASetStatus();
+                    LDSetStatus(&CPU::A);
                 } break;
 
                 case INS_LDA_ABS:
                 {
                     auto address = FetchWord(cycles, memory);
                     A = ReadByte(cycles, address, memory);
-                    LDASetStatus();
+                    LDSetStatus(&CPU::A);
                 } break;
 
                 case INS_LDA_ABSX:
@@ -160,7 +167,7 @@ namespace Emu
                     cycles -= ((address & 0xFF) + X) > 0xFF ? 1 : 0;
                     address += X;
                     A = ReadByte(cycles, address, memory);
-                    LDASetStatus();
+                    LDSetStatus(&CPU::A);
                 } break;
 
                 case INS_LDA_ABSY:
@@ -169,7 +176,7 @@ namespace Emu
                     cycles -= ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
                     address += Y;
                     A = ReadByte(cycles, address, memory);
-                    LDASetStatus();
+                    LDSetStatus(&CPU::A);
                 } break;
 
                 case INS_LDA_INDX:
@@ -179,7 +186,7 @@ namespace Emu
                     zeroPageAddress += X;
                     auto address = ReadWord(cycles, zeroPageAddress, memory);
                     A = ReadByte(cycles, address, memory);
-                    LDASetStatus();
+                    LDSetStatus(&CPU::A);
                 } break;
 
                 case INS_LDA_INDY:
@@ -189,13 +196,40 @@ namespace Emu
                     cycles -= ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
                     address += Y;
                     A = ReadByte(cycles, address, memory);
-                    LDASetStatus();
+                    LDSetStatus(&CPU::A);
                 } break;
 
+
+                // LDX
                 case INS_LDX_IM:
                 {
-
+                    X = FetchByte(cycles, memory);
+                    LDSetStatus(&CPU::X);
                 } break;
+
+                case INS_LDX_ZP:
+                {
+                    auto zeroPageAddress = FetchByte(cycles, memory);
+                    X = ReadByte(cycles, zeroPageAddress, memory);
+                    LDSetStatus(&CPU::X);
+                } break;
+
+
+                // LDY
+
+                case INS_LDY_IM:
+                {
+                    Y = FetchByte(cycles, memory);
+                    LDSetStatus(&CPU::Y);
+                } break;
+
+                case INS_LDY_ZP:
+                {
+                    auto zeroPageAddress = FetchByte(cycles, memory);
+                    Y = ReadByte(cycles, zeroPageAddress, memory);
+                    LDSetStatus(&CPU::Y);
+                } break;
+
 
                 case INS_JSR:
                 {

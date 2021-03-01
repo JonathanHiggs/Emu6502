@@ -4,14 +4,14 @@ set(FILES
     Emu.UnitTests/LDA_ABS_Tests.cpp
     Emu.UnitTests/LDA_ABSX_Tests.cpp
     Emu.UnitTests/LDA_ABSY_Tests.cpp
-    Emu.UnitTests/LDA_IM_Tests.cpp
     Emu.UnitTests/LDA_INDX_Tests.cpp
     Emu.UnitTests/LDA_INDY_Tests.cpp
-    Emu.UnitTests/LDA_ZP_Tests.cpp
     Emu.UnitTests/LDA_ZPX_Tests.cpp
+    Emu.UnitTests/LDATests.cpp
     Emu.UnitTests/LDUtils.cpp
     Emu.UnitTests/LDUtils.hpp
-    Emu.UnitTests/LDX_IM_Tests.cpp
+    Emu.UnitTests/LDXTests.cpp
+    Emu.UnitTests/LDYTests.cpp
     Emu.UnitTests/main.cpp
 )
 
