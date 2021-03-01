@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <cstring>
+#include <limits>
 
 #include <fmt/format.h>
 

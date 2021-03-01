@@ -13,5 +13,10 @@ set(CMAKE_CXX_FLAGS "/EHsc /WX /W4 /wd4005 /wd4100 /wd4189 /wd4458")
 set(CMAKE_CXX_FLAGS_DEBUG "/Od /Oi /Zi /JMC")
 
 find_package(fmt CONFIG REQUIRED)
+find_package(GTest REQUIRED)
+include(GoogleTest)
+
+enable_testing()
 
 add_subdirectory(src)
+add_subdirectory(test)

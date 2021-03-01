@@ -21,6 +21,9 @@ namespace Emu
         Word BreakCommand : 1;
         Word OverflowFlag : 1;
         Word NegativeFlag : 1;
+        // Extra debug flags
+        Word UnhandledInstruction : 1;
+        Word CycleOverflow : 1;
 
         void Reset(Memory & memory)
         {
@@ -34,6 +37,8 @@ namespace Emu
             BreakCommand = 0;
             OverflowFlag = 0;
             NegativeFlag = 0;
+            UnhandledInstruction = 0;
+            CycleOverflow = 0;
 
             A = X = Y = 0;
 
@@ -91,6 +96,12 @@ namespace Emu
         {
             while (cycles > 0)
             {
+                if (cycles >= std::numeric_limits<uint32>::max() - 10)
+                {
+                    CycleOverflow = 1;
+                    return;
+                }
+
                 auto instruction = FetchByte(cycles, memory);
 
                 switch (instruction)
@@ -128,7 +139,9 @@ namespace Emu
 
                 default:
                 {
+                    UnhandledInstruction = 1;
                     fmt::print("Instruction not handled: {:x}\n", instruction);
+                    return;
                 }
                 }
             }
