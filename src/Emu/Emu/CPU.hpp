@@ -107,7 +107,7 @@ namespace Emu
 
         static constexpr Byte INS_LDY_IM    = 0xA0;
         static constexpr Byte INS_LDY_ZP    = 0xA4;
-        static constexpr Byte INS_LDY_ZPY   = 0xB4;
+        static constexpr Byte INS_LDY_ZPX   = 0xB4;
         static constexpr Byte INS_LDY_ABS   = 0xAC;
         static constexpr Byte INS_LDY_ABSY  = 0xBC;
 
@@ -214,9 +214,17 @@ namespace Emu
                     LDSetStatus(&CPU::X);
                 } break;
 
+                case INS_LDX_ZPY:
+                {
+                    auto zeroPageAddress = FetchByte(cycles, memory);
+                    zeroPageAddress += Y;
+                    --cycles;
+                    X = ReadByte(cycles, zeroPageAddress, memory);
+                    LDSetStatus(&CPU::X);
+                } break;
+
 
                 // LDY
-
                 case INS_LDY_IM:
                 {
                     Y = FetchByte(cycles, memory);
@@ -230,7 +238,17 @@ namespace Emu
                     LDSetStatus(&CPU::Y);
                 } break;
 
+                case INS_LDY_ZPX:
+                {
+                    auto zeroPageAddress = FetchByte(cycles, memory);
+                    zeroPageAddress += X;
+                    --cycles;
+                    Y = ReadByte(cycles, zeroPageAddress, memory);
+                    LDSetStatus(&CPU::Y);
+                } break;
 
+
+                // JSR
                 case INS_JSR:
                 {
                     auto address = FetchWord(cycles, memory);

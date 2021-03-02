@@ -40,3 +40,27 @@ TEST_F(CPUFixture, LDX_ZP_WithZeroValue_CanLoadValueIntoRegister)
 {
     TestLoadRegisterZeroPage_WithZeroValue(cpu, memory, CPU::INS_LDX_ZP, &CPU::X);
 }
+
+
+TEST_F(CPUFixture, LDX_ZPY_CanLoadValueIntoRegister)
+{
+    TestLoadRegisterZeroPageOffset(cpu, memory, CPU::INS_LDX_ZPY, &CPU::Y, &CPU::X);
+}
+
+
+TEST_F(CPUFixture, LDX_ZPY_WithNegativeValue_CanLoadValueIntoRegister)
+{
+    TestLoadRegisterZeroPageOffset_WithNegativeValue(cpu, memory, CPU::INS_LDX_ZPY, &CPU::Y, &CPU::X);
+}
+
+
+TEST_F(CPUFixture, LDX_ZPY_WithZeroValue_CanLoadValueIntoRegister)
+{
+    TestLoadRegisterZeroPageOffset_WithZeroValue(cpu, memory, CPU::INS_LDX_ZPY, &CPU::Y, &CPU::X);
+}
+
+
+TEST_F(CPUFixture, LDX_ZPY_WithWrappedAddress_CanLoadValueIntoRegister)
+{
+    TestLoadRegisterZeroPageOffset_WithWrappedAddress(cpu, memory, CPU::INS_LDX_ZPY, &CPU::Y, &CPU::X);
+}

@@ -46,4 +46,36 @@ namespace Emu::UnitTests
         Byte opCode,
         Byte CPU::*reg);
 
+
+    void TestLoadRegisterZeroPageOffset(
+        CPU & cpu,
+        Memory & memory,
+        Byte opCode,
+        Byte CPU::* offsetRegister,
+        Byte CPU::* resultRegister);
+
+
+    void TestLoadRegisterZeroPageOffset_WithNegativeValue(
+        CPU & cpu,
+        Memory & memory,
+        Byte opCode,
+        Byte CPU::* offsetRegister,
+        Byte CPU::* resultRegister);
+
+
+    void TestLoadRegisterZeroPageOffset_WithZeroValue(
+        CPU & cpu,
+        Memory & memory,
+        Byte opCode,
+        Byte CPU::* offsetRegister,
+        Byte CPU::* resultRegister);
+
+
+    void TestLoadRegisterZeroPageOffset_WithWrappedAddress(
+        CPU & cpu,
+        Memory & memory,
+        Byte opCode,
+        Byte CPU::* offsetRegister,
+        Byte CPU::* resultRegister);
+
 }

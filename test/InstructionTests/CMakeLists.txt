@@ -6,7 +6,6 @@ set(FILES
     Emu/UnitTests/LDA_ABSY_Tests.cpp
     Emu/UnitTests/LDA_INDX_Tests.cpp
     Emu/UnitTests/LDA_INDY_Tests.cpp
-    Emu/UnitTests/LDA_ZPX_Tests.cpp
     Emu/UnitTests/LDATests.cpp
     Emu/UnitTests/LDUtils.cpp
     Emu/UnitTests/LDUtils.hpp
