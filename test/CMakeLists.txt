@@ -1,1 +1,1 @@
-add_subdirectory(Emu.UnitTests)
+add_subdirectory(InstructionTests)

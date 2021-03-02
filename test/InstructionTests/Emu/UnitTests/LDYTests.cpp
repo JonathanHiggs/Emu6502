@@ -1,5 +1,9 @@
-#include <Emu.UnitTests/CPUFixture.hpp>
-#include <Emu.UnitTests/LDUtils.hpp>
+#include <Emu/UnitTests/CPUFixture.hpp>
+#include <Emu/UnitTests/LDUtils.hpp>
+
+
+using namespace Emu;
+using namespace Emu::UnitTests;
 
 
 TEST_F(CPUFixture, LDY_IM_CanLoadValueIntoRegister)

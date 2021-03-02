@@ -1,4 +1,8 @@
-#include <Emu.UnitTests/CPUFixture.hpp>
+#include <Emu/UnitTests/CPUFixture.hpp>
+
+
+using namespace Emu;
+using namespace Emu::UnitTests;
 
 
 TEST_F(CPUFixture, LDA_ABS_CanLoadValueIntoRegister)
