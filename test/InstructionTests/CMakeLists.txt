@@ -1,8 +1,6 @@
 set(FILES
     Emu/UnitTests/CPUFixture.hpp
     Emu/UnitTests/CPUTests.cpp
-    Emu/UnitTests/LDA_ABS_Tests.cpp
-    Emu/UnitTests/LDA_ABSX_Tests.cpp
     Emu/UnitTests/LDA_ABSY_Tests.cpp
     Emu/UnitTests/LDA_INDX_Tests.cpp
     Emu/UnitTests/LDA_INDY_Tests.cpp

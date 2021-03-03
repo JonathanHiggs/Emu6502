@@ -9,46 +9,6 @@ namespace Emu::UnitTests
     namespace
     {
 
-        void ArrangeLoadRegisterImmediate(
-            Memory & memory,
-            Byte opCode,
-            Byte value)
-        {
-            memory.WriteByte(0xFFFC, opCode);
-            memory.WriteByte(0xFFFD, value);
-        }
-
-        void ArrangeLoadRegisterZeroPage(
-            Memory & memory,
-            Byte opCode,
-            Byte value)
-        {
-            // Arrange
-            Byte address = 0x42;
-
-            memory.WriteByte(0xFFFC, opCode);
-            memory.WriteByte(0xFFFD, address);
-            memory.WriteByte(address, value);
-        }
-
-        void ArrangeLoadRegisterZeroPageOffset(
-            CPU & cpu,
-            Memory & memory,
-            Byte opCode,
-            Byte value,
-            Byte CPU::* offsetRegister,
-            bool wrapAddress = false)
-        {
-            Byte registerValue = wrapAddress ? 0xFF : 0x05;
-            Byte baseAddress = 0x42;
-            Byte offsetAddress = (baseAddress + registerValue) % 0x100;
-
-            cpu.*offsetRegister = registerValue;
-            memory.WriteByte(0xFFFC, opCode);
-            memory.WriteByte(0xFFFD, baseAddress);
-            memory.WriteByte(offsetAddress, value);
-        }
-
         void AssertLD(
             CPU & cpu,
             CPU & initialCpu,
@@ -84,150 +44,17 @@ namespace Emu::UnitTests
     }
 
 
-    void TestLoadRegisterImmediate(
+    void TestLoadRegisterImmediateImpl(
         CPU & cpu,
         Memory & memory,
         Byte opCode,
-        Byte CPU::*reg)
+        Byte CPU::* resultRegister,
+        uint32 expectedCycles,
+        Byte value)
     {
         // Arrange
-        constexpr uint32 expectedCycles = 2u;
-        constexpr Byte value = 0x23;
-
-        ArrangeLoadRegisterImmediate(memory, opCode, value);
-
-        CPU initial = cpu;
-
-        // Act
-        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
-
-        // Assert
-        AssertLD(cpu, initial, value, reg, cyclesUsed, expectedCycles);
-    }
-
-
-    void TestLoadRegisterImmediate_WithNegativeValue(
-        CPU & cpu,
-        Memory & memory,
-        Byte opCode,
-        Byte CPU::*reg)
-    {
-        // Arrange
-        constexpr uint32 expectedCycles = 2u;
-        constexpr Byte value = 0xC3;
-
-        ArrangeLoadRegisterImmediate(memory, opCode, value);
-
-        CPU initial = cpu;
-
-        // Act
-        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
-
-        // Assert
-        AssertLD(cpu, initial, value, reg, cyclesUsed, expectedCycles);
-    }
-
-
-    void TestLoadRegisterImmediate_WithZeroValue(
-        CPU & cpu,
-        Memory & memory,
-        Byte opCode,
-        Byte CPU::*reg)
-    {
-        // Arrange
-        constexpr uint32 expectedCycles = 2u;
-        constexpr Byte value = 0x00;
-
-        ArrangeLoadRegisterImmediate(memory, opCode, value);
-
-        CPU initial = cpu;
-
-        // Act
-        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
-
-        // Assert
-        AssertLD(cpu, initial, value, reg, cyclesUsed, expectedCycles);
-    }
-
-
-    void TestLoadRegisterZeroPage(
-        CPU & cpu,
-        Memory & memory,
-        Byte opCode,
-        Byte CPU::*reg)
-    {
-        // Arrange
-        constexpr uint32 expectedCycles = 3u;
-        constexpr Byte value = 0x23;
-
-        ArrangeLoadRegisterZeroPage(memory, opCode, value);
-
-        CPU initial = cpu;
-
-        // Act
-        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
-
-        // Assert
-        AssertLD(cpu, initial, value, reg, cyclesUsed, expectedCycles);
-    }
-
-
-    void TestLoadRegisterZeroPage_WithNegativeValue(
-        CPU & cpu,
-        Memory & memory,
-        Byte opCode,
-        Byte CPU::*reg)
-    {
-        // Arrange
-        constexpr uint32 expectedCycles = 3u;
-        constexpr Byte value = 0xD3;
-
-        ArrangeLoadRegisterZeroPage(memory, opCode, value);
-
-        CPU initial = cpu;
-
-        // Act
-        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
-
-        // Assert
-        AssertLD(cpu, initial, value, reg, cyclesUsed, expectedCycles);
-    }
-
-
-    void TestLoadRegisterZeroPage_WithZeroValue(
-        CPU & cpu,
-        Memory & memory,
-        Byte opCode,
-        Byte CPU::*reg)
-    {
-        // Arrange
-        constexpr uint32 expectedCycles = 3u;
-        constexpr Byte value = 0x00;
-
-        ArrangeLoadRegisterZeroPage(memory, opCode, value);
-
-        CPU initial = cpu;
-
-        // Act
-        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
-
-        // Assert
-        AssertLD(cpu, initial, value, reg, cyclesUsed, expectedCycles);
-    }
-
-
-    void TestLoadRegisterZeroPageOffset(
-        CPU & cpu,
-        Memory & memory,
-        Byte opCode,
-        Byte CPU::* offsetRegister,
-        Byte CPU::* resultRegister)
-    {
-        // Arrange
-        constexpr uint32 expectedCycles = 4u;
-        constexpr Byte value = 0x42;
-
-        ArrangeLoadRegisterZeroPageOffset(cpu, memory, opCode, value, offsetRegister);
+        memory.WriteByte(0xFFFC, opCode);
+        memory.WriteByte(0xFFFD, value);
 
         CPU initial = cpu;
 
@@ -238,19 +65,30 @@ namespace Emu::UnitTests
         AssertLD(cpu, initial, value, resultRegister, cyclesUsed, expectedCycles);
     }
 
+    void TestLoadRegisterImmediate(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterImmediateImpl(cpu, memory, opCode, resultRegister, 2u, 0x23); }
 
-    void TestLoadRegisterZeroPageOffset_WithNegativeValue(
+    void TestLoadRegisterImmediate_WithNegativeValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterImmediateImpl(cpu, memory, opCode, resultRegister, 2u, 0xC3); }
+
+    void TestLoadRegisterImmediate_WithZeroValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterImmediateImpl(cpu, memory, opCode, resultRegister, 2u, 0x00); }
+
+
+    void TestLoadRegisterZeroPageImpl(
         CPU & cpu,
         Memory & memory,
         Byte opCode,
-        Byte CPU::* offsetRegister,
-        Byte CPU::* resultRegister)
+        Byte CPU::* resultRegister,
+        uint32 expectedCycles,
+        Byte value)
     {
         // Arrange
-        constexpr uint32 expectedCycles = 4u;
-        constexpr Byte value = 0xE2;
+        Byte address = 0x42;
 
-        ArrangeLoadRegisterZeroPageOffset(cpu, memory, opCode, value, offsetRegister);
+        memory.WriteByte(0xFFFC, opCode);
+        memory.WriteByte(0xFFFD, address);
+        memory.WriteByte(address, value);
 
         CPU initial = cpu;
 
@@ -261,19 +99,35 @@ namespace Emu::UnitTests
         AssertLD(cpu, initial, value, resultRegister, cyclesUsed, expectedCycles);
     }
 
+    void TestLoadRegisterZeroPage(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::*reg)
+    { TestLoadRegisterZeroPageImpl(cpu, memory, opCode, reg, 3u, 0x23); }
 
-    void TestLoadRegisterZeroPageOffset_WithZeroValue(
+    void TestLoadRegisterZeroPage_WithNegativeValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::*reg)
+    { TestLoadRegisterZeroPageImpl(cpu, memory, opCode, reg, 3u, 0xD3); }
+
+    void TestLoadRegisterZeroPage_WithZeroValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::*reg)
+    { TestLoadRegisterZeroPageImpl(cpu, memory, opCode, reg, 3u, 0x00); }
+
+
+    void TestLoadRegisterZeroPageOffsetImpl(
         CPU & cpu,
         Memory & memory,
         Byte opCode,
         Byte CPU::* offsetRegister,
-        Byte CPU::* resultRegister)
+        Byte CPU::* resultRegister,
+        uint32 expectedCycles,
+        Byte value,
+        bool wrapAddress = false)
     {
         // Arrange
-        constexpr uint32 expectedCycles = 4u;
-        constexpr Byte value = 0x00;
+        Byte registerValue = wrapAddress ? 0xFF : 0x05;
+        Byte baseAddress = 0x42;
+        Byte offsetAddress = (baseAddress + registerValue) % 0x100;
 
-        ArrangeLoadRegisterZeroPageOffset(cpu, memory, opCode, value, offsetRegister);
+        cpu.*offsetRegister = registerValue;
+        memory.WriteByte(0xFFFC, opCode);
+        memory.WriteByte(0xFFFD, baseAddress);
+        memory.WriteByte(offsetAddress, value);
 
         CPU initial = cpu;
 
@@ -284,19 +138,33 @@ namespace Emu::UnitTests
         AssertLD(cpu, initial, value, resultRegister, cyclesUsed, expectedCycles);
     }
 
+    void TestLoadRegisterZeroPageOffset(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* offsetRegister, Byte CPU::* resultRegister)
+    { TestLoadRegisterZeroPageOffsetImpl(cpu, memory, opCode, offsetRegister, resultRegister, 4u, 0x42); }
 
-    void TestLoadRegisterZeroPageOffset_WithWrappedAddress(
+    void TestLoadRegisterZeroPageOffset_WithNegativeValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* offsetRegister, Byte CPU::* resultRegister)
+    { TestLoadRegisterZeroPageOffsetImpl(cpu, memory, opCode, offsetRegister, resultRegister, 4u, 0xE2); }
+
+    void TestLoadRegisterZeroPageOffset_WithZeroValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* offsetRegister, Byte CPU::* resultRegister)
+    { TestLoadRegisterZeroPageOffsetImpl(cpu, memory, opCode, offsetRegister, resultRegister, 4u, 0x00); }
+
+    void TestLoadRegisterZeroPageOffset_WithWrappedAddress(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* offsetRegister, Byte CPU::* resultRegister)
+    { TestLoadRegisterZeroPageOffsetImpl(cpu, memory, opCode, offsetRegister, resultRegister, 4u, 0x42, true); }
+
+
+    void TestLoadRegisterAbsoluteImpl(
         CPU & cpu,
         Memory & memory,
         Byte opCode,
-        Byte CPU::* offsetRegister,
-        Byte CPU::* resultRegister)
+        Byte CPU::* resultRegister,
+        uint32 expectedCycles,
+        Byte value)
     {
         // Arrange
-        constexpr uint32 expectedCycles = 4u;
-        constexpr Byte value = 0x42;
+        Word address = 0x4480;
 
-        ArrangeLoadRegisterZeroPageOffset(cpu, memory, opCode, value, offsetRegister, true);
+        memory.WriteByte(0xFFFC, opCode);
+        memory.WriteWord(0xFFFD, address);
+        memory.WriteByte(address, value);
 
         CPU initial = cpu;
 
@@ -306,5 +174,57 @@ namespace Emu::UnitTests
         // Assert
         AssertLD(cpu, initial, value, resultRegister, cyclesUsed, expectedCycles);
     }
+
+    void TestLoadRegisterAbsolute(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterAbsoluteImpl(cpu, memory, opCode, resultRegister, 4u, 0x11); }
+
+    void TestLoadRegisterAbsolute_WithNegativeValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterAbsoluteImpl(cpu, memory, opCode, resultRegister, 4u, 0xD1); }
+
+    void TestLoadRegisterAbsolute_WithZeroValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterAbsoluteImpl(cpu, memory, opCode, resultRegister, 4u, 0x00); }
+
+
+    void TestLoadRegisterAbsoluteXImpl(
+        CPU & cpu,
+        Memory & memory,
+        Byte opCode,
+        Byte CPU::* resultRegister,
+        uint32 expectedCycles,
+        Byte value,
+        bool crossPageBoundary = false)
+    {
+        assert(resultRegister != &CPU::X);
+
+        // Arrange
+        Byte registerValue = crossPageBoundary ? 0xFF : 0x01;
+        Word baseAddress = 0x4480;
+        Word offsetAddress = baseAddress + registerValue;
+
+        cpu.X = registerValue;
+        memory.WriteByte(0xFFFC, opCode);
+        memory.WriteWord(0xFFFD, baseAddress);
+        memory.WriteByte(offsetAddress, value);
+
+        CPU initial = cpu;
+
+        // Act
+        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
+
+        // Assert
+        AssertLD(cpu, initial, value, resultRegister, cyclesUsed, expectedCycles);
+    }
+
+    void TestLoadRegisterAbsoluteX(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterAbsoluteXImpl(cpu, memory, opCode, resultRegister, 4u, 0x22); }
+
+    void TestLoadRegisterAbsoluteX_WithNegativeValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterAbsoluteXImpl(cpu, memory, opCode, resultRegister, 4u, 0xA2); }
+
+    void TestLoadRegisterAbsoluteX_WithZeroValue(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterAbsoluteXImpl(cpu, memory, opCode, resultRegister, 4u, 0x00); }
+
+    void TestLoadRegisterAbsoluteX_WithCrossPageBoundary(CPU & cpu, Memory & memory, Byte opCode, Byte CPU::* resultRegister)
+    { TestLoadRegisterAbsoluteXImpl(cpu, memory, opCode, resultRegister, 5u, 0x01, true); }
 
 }
