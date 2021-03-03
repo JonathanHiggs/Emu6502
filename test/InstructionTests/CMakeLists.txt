@@ -1,8 +1,5 @@
 set(FILES
-    Emu/UnitTests/CPUFixture.hpp
     Emu/UnitTests/CPUTests.cpp
-    Emu/UnitTests/LDA_INDX_Tests.cpp
-    Emu/UnitTests/LDA_INDY_Tests.cpp
     Emu/UnitTests/LoadRegisterTests.cpp
     Emu/UnitTests/main.cpp
 )

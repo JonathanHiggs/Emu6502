@@ -264,6 +264,75 @@ namespace Emu::UnitTests
 
         void AbsoluteY_WithCrossPageBoundary(Byte opCode, Byte CPU::* resultRegister)
         { AbsoluteYTest(opCode, resultRegister, 5u, 0x01, true); }
+
+
+        void IndirectXTest(Byte value)
+        {
+            // Arrange
+            uint32 expectedCycles = 6u;
+            Byte offsetValue = 0x04;
+            Byte zeroPageAddress = 0x0002;
+            Word indexAddress = (Word)(zeroPageAddress + offsetValue);
+            Word valueAddress = 0x4480;
+
+            cpu.X = offsetValue;
+            memory.WriteByte(0xFFFC, CPU::INS_LDA_INDX);
+            memory.WriteByte(0xFFFD, zeroPageAddress);
+            memory.WriteWord(indexAddress, valueAddress);
+            memory.WriteByte(valueAddress, value);
+
+            CPU initial = cpu;
+
+            // Act
+            auto cyclesUsed = cpu.Execute(expectedCycles, memory);
+
+            // Assert
+            AssertRegisters(initial, value, &CPU::A, cyclesUsed, expectedCycles);
+        }
+
+        void IndirectX_WithPositiveValue()
+        { IndirectXTest(0x22); }
+
+        void IndirectX_WithNegativeValue()
+        { IndirectXTest(0xB2); }
+
+        void IndirectX_WithZeroValue()
+        { IndirectXTest(0x00); }
+
+
+        void IndirectYTest(Byte value, bool crossPageBoundary = false)
+        {
+            // Arrange
+            uint32 expectedCycles = crossPageBoundary ? 6u : 5u;
+            Byte offsetValue = 0x04;
+            Word zeroPageAddress = 0x0002;
+            Word indexAddress = crossPageBoundary ? 0x44FE : 0x4400;
+            Word valueAddress = indexAddress + offsetValue;
+
+            cpu.Y = offsetValue;
+            memory.WriteByte(0xFFFC, CPU::INS_LDA_INDY);
+            memory.WriteByte(0xFFFD, (Byte)zeroPageAddress);
+            memory.WriteWord(zeroPageAddress, indexAddress);
+            memory.WriteByte(valueAddress, value);
+
+            CPU initial = cpu;
+
+            // Act
+            auto cyclesUsed = cpu.Execute(expectedCycles, memory);
+
+            // Assert
+            AssertRegisters(initial, value, &CPU::A, cyclesUsed, expectedCycles);
+        }
+
+        void IndirectY_WithPositiveValue()
+        { IndirectYTest(0x04); }
+
+        void IndirectY_WithNegativeValue()
+        { IndirectYTest(0xE4); }
+
+        void IndirectY_WithZeroValue()
+        { IndirectYTest(0x00); }
+
     };
 
 
@@ -341,6 +410,28 @@ namespace Emu::UnitTests
 
     TEST_F(LoadRegisterFixture, LDA_ABSY_WithCrossPageBoundary)
     { AbsoluteY_WithCrossPageBoundary(CPU::INS_LDA_ABSY, &CPU::A); }
+
+
+    // LDA_INDX
+    TEST_F(LoadRegisterFixture, LDA_INDX_WithPositiveValue)
+    { IndirectX_WithPositiveValue(); }
+
+    TEST_F(LoadRegisterFixture, LDA_INDX_WithNegativeValue)
+    { IndirectX_WithNegativeValue(); }
+
+    TEST_F(LoadRegisterFixture, LDA_INDX_WithZeroValue)
+    { IndirectX_WithZeroValue(); }
+
+
+    // LDA_INDY
+    TEST_F(LoadRegisterFixture, LDA_INDY_WithPositiveValue)
+    { IndirectX_WithPositiveValue(); }
+
+    TEST_F(LoadRegisterFixture, LDA_INDY_WithNegativeValue)
+    { IndirectX_WithNegativeValue(); }
+
+    TEST_F(LoadRegisterFixture, LDA_INDY_WithZeroValue)
+    { IndirectX_WithZeroValue(); }
 
 
     /* --------- LDX --------- */

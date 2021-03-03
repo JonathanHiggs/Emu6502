@@ -1,66 +1,86 @@
-#include <Emu/UnitTests/CPUFixture.hpp>
+#include <gtest/gtest.h>
+
+#include <Emu/CPU.hpp>
+#include <Emu/Memory.hpp>
 
 
-using namespace Emu;
-using namespace Emu::UnitTests;
-
-
-TEST_F(CPUFixture, CPU_WithWithZeroCycles_DoesNothing)
+namespace Emu::UnitTests
 {
-    // Arrange
-    constexpr uint32 cycles = 0u;
 
-    // Act
-    auto cyclesUsed = cpu.Execute(cycles, memory);
+    class CPUFixture : public testing::Test
+    {
+    public:
+        Memory memory;
+        CPU cpu;
 
-    // Assert
-    EXPECT_EQ(cyclesUsed, 0u);
-}
+        void SetUp() override
+        {
+            cpu.Reset(memory);
+        }
 
-
-TEST_F(CPUFixture, CPU_WithFewerCyclesGiven_CanExecuteInstruction)
-{
-    // Arrange
-    memory.WriteByte(0xFFFC, CPU::INS_LDA_IM);
-    memory.WriteByte(0xFFFD, 0x34);
-    constexpr uint32 expectedCycles = 2u;
-
-    // Act
-    auto cyclesUsed = cpu.Execute(expectedCycles - 1u, memory);
-
-    // Assert
-    EXPECT_EQ(cyclesUsed, expectedCycles);
-    EXPECT_TRUE(cpu.CycleOverflow);
-}
+        void TearDown() override
+        { }
+    };
 
 
-TEST_F(CPUFixture, CPU_WithBadInstruction_DoesNotInfiniteLoop)
-{
-    // Arrange
-    constexpr uint32 expectedCycles = 1u;
+    TEST_F(CPUFixture, CPU_WithWithZeroCycles_DoesNothing)
+    {
+        // Arrange
+        constexpr uint32 cycles = 0u;
 
-    memory.WriteByte(0xFFFC, 0x00);
-    memory.WriteByte(0xFFFD, 0x00);
+        // Act
+        auto cyclesUsed = cpu.Execute(cycles, memory);
 
-    // Act
-    auto cyclesUsed = cpu.Execute(expectedCycles, memory);
-
-    // Assert
-    EXPECT_EQ(cyclesUsed, expectedCycles);
-}
+        // Assert
+        EXPECT_EQ(cyclesUsed, 0u);
+    }
 
 
-TEST_F(CPUFixture, CPU_WithBadInstruction_SetsUnhandledInstructionBit)
-{
-    // Arrange
-    constexpr uint32 expectedCycles = 1u;
+    TEST_F(CPUFixture, CPU_WithFewerCyclesGiven_CanExecuteInstruction)
+    {
+        // Arrange
+        memory.WriteByte(0xFFFC, CPU::INS_LDA_IM);
+        memory.WriteByte(0xFFFD, 0x34);
+        constexpr uint32 expectedCycles = 2u;
 
-    memory.WriteByte(0xFFFC, 0x00);
+        // Act
+        auto cyclesUsed = cpu.Execute(expectedCycles - 1u, memory);
 
-    // Act
-    auto cyclesUsed = cpu.Execute(expectedCycles, memory);
+        // Assert
+        EXPECT_EQ(cyclesUsed, expectedCycles);
+        EXPECT_TRUE(cpu.CycleOverflow);
+    }
 
-    // Assert
-    EXPECT_EQ(cyclesUsed, expectedCycles);
-    EXPECT_TRUE(cpu.UnhandledInstruction);
+
+    TEST_F(CPUFixture, CPU_WithBadInstruction_DoesNotInfiniteLoop)
+    {
+        // Arrange
+        constexpr uint32 expectedCycles = 1u;
+
+        memory.WriteByte(0xFFFC, 0x00);
+        memory.WriteByte(0xFFFD, 0x00);
+
+        // Act
+        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
+
+        // Assert
+        EXPECT_EQ(cyclesUsed, expectedCycles);
+    }
+
+
+    TEST_F(CPUFixture, CPU_WithBadInstruction_SetsUnhandledInstructionBit)
+    {
+        // Arrange
+        constexpr uint32 expectedCycles = 1u;
+
+        memory.WriteByte(0xFFFC, 0x00);
+
+        // Act
+        auto cyclesUsed = cpu.Execute(expectedCycles, memory);
+
+        // Assert
+        EXPECT_EQ(cyclesUsed, expectedCycles);
+        EXPECT_TRUE(cpu.UnhandledInstruction);
+    }
+
 }
