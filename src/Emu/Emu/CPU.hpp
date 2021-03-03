@@ -230,6 +230,15 @@ namespace Emu
                     LDSetStatus(&CPU::X);
                 } break;
 
+                case INS_LDX_ABSY:
+                {
+                    auto address = FetchWord(cycles, memory);
+                    cycles -= ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
+                    address += Y;
+                    X = ReadByte(cycles, address, memory);
+                    LDSetStatus(&CPU::X);
+                } break;
+
 
                 // LDY
                 case INS_LDY_IM:
