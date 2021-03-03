@@ -108,7 +108,7 @@ namespace Emu
             return (FetchAddressZeroPage(cycles, memory) + Y) & 0x00FF;
         }
 
-        inline Byte ReadByte(uint32 & cycles, Word const address, Memory const & memory)
+        inline Byte ReadByte(uint32 & cycles, Word const address, Memory const & memory) const
         {
             auto value = memory.ReadByte(address);
             --cycles;
@@ -125,7 +125,7 @@ namespace Emu
             return value;
         }
 
-        inline Word ReadWord(uint32 & cycles, Word const address, Memory const & memory)
+        inline Word ReadWord(uint32 & cycles, Word const address, Memory const & memory) const
         {
             auto value = memory.ReadWord(address);
             cycles -= 2;
@@ -138,10 +138,10 @@ namespace Emu
             cycles -= 2;
         }
 
-        inline void LoadRegisterSetStatus(Byte CPU::*reg)
+        inline void LoadRegisterSetStatus(Byte & reg)
         {
-            ZeroFlag = *this.*reg == 0;
-            NegativeFlag = (*this.*reg & 1 << 7) > 0;
+            ZeroFlag = reg == 0;
+            NegativeFlag = (reg & 1 << 7) > 0;
         }
 
         // opcodes
@@ -172,6 +172,19 @@ namespace Emu
 
         uint32 Execute(uint32 cycles, Memory & memory)
         {
+            auto LoadRegisterImmediate = [&cycles, &memory, this](Byte & reg)
+            {
+                reg = FetchByte(cycles, memory);
+                LoadRegisterSetStatus(reg);
+            };
+
+            /* Load a register from the address */
+            auto LoadRegister = [&cycles, &memory, this](Byte & reg, Word const & address)
+            {
+                reg = ReadByte(cycles, address, memory);
+                LoadRegisterSetStatus(reg);
+            };
+
             uint32 startCycles = cycles;
 
             while (cycles > 0)
@@ -187,134 +200,27 @@ namespace Emu
 
                 switch (instruction)
                 {
-                // LDA
-                case INS_LDA_IM:
-                {
-                    A = FetchByte(cycles, memory);
-                    LoadRegisterSetStatus(&CPU::A);
-                } break;
-
-                case INS_LDA_ZP:
-                {
-                    auto address = FetchAddressZeroPage(cycles, memory);
-                    A = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::A);
-                } break;
-
-                case INS_LDA_ZPX:
-                {
-                    auto address = FetchAddressZeroPageX(cycles, memory);
-                    A = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::A);
-                } break;
-
-                case INS_LDA_ABS:
-                {
-                    auto address = FetchAddressAbsolute(cycles, memory);
-                    A = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::A);
-                } break;
-
-                case INS_LDA_ABSX:
-                {
-                    auto address = FetchAddressAbsoluteX(cycles, memory);
-                    A = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::A);
-                } break;
-
-                case INS_LDA_ABSY:
-                {
-                    auto address = FetchAddressAbsoluteY(cycles, memory);
-                    A = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::A);
-                } break;
-
-                case INS_LDA_INDX:
-                {
-                    auto address = FetchAddressIndirectX(cycles, memory);
-                    A = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::A);
-                } break;
-
-                case INS_LDA_INDY:
-                {
-                    auto address = FetchAddressIndirectY(cycles, memory);
-                    A = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::A);
-                } break;
-
-
+                // Load Register
+                case INS_LDA_IM:    LoadRegisterImmediate(A);                                   break;
+                case INS_LDA_ZP:    LoadRegister(A, FetchAddressZeroPage(cycles, memory));      break;
+                case INS_LDA_ZPX:   LoadRegister(A, FetchAddressZeroPageX(cycles, memory));     break;
+                case INS_LDA_ABS:   LoadRegister(A, FetchAddressAbsolute(cycles, memory));      break;
+                case INS_LDA_ABSX:  LoadRegister(A, FetchAddressAbsoluteX(cycles, memory));     break;
+                case INS_LDA_ABSY:  LoadRegister(A, FetchAddressAbsoluteY(cycles, memory));     break;
+                case INS_LDA_INDX:  LoadRegister(A, FetchAddressIndirectX(cycles, memory));     break;
+                case INS_LDA_INDY:  LoadRegister(A, FetchAddressIndirectY(cycles, memory));     break;
                 // LDX
-                case INS_LDX_IM:
-                {
-                    X = FetchByte(cycles, memory);
-                    LoadRegisterSetStatus(&CPU::X);
-                } break;
-
-                case INS_LDX_ZP:
-                {
-                    auto address = FetchAddressZeroPage(cycles, memory);
-                    X = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::X);
-                } break;
-
-                case INS_LDX_ZPY:
-                {
-                    auto address = FetchAddressZeroPageY(cycles, memory);
-                    X = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::X);
-                } break;
-
-                case INS_LDX_ABS:
-                {
-                    auto address = FetchAddressAbsolute(cycles, memory);
-                    X = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::X);
-                } break;
-
-                case INS_LDX_ABSY:
-                {
-                    auto address = FetchAddressAbsoluteY(cycles, memory);
-                    X = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::X);
-                } break;
-
-
+                case INS_LDX_IM:    LoadRegisterImmediate(X);                                   break;
+                case INS_LDX_ZP:    LoadRegister(X, FetchAddressZeroPage(cycles, memory));      break;
+                case INS_LDX_ZPY:   LoadRegister(X, FetchAddressZeroPageY(cycles, memory));     break;
+                case INS_LDX_ABS:   LoadRegister(X, FetchAddressAbsolute(cycles, memory));      break;
+                case INS_LDX_ABSY:  LoadRegister(X, FetchAddressAbsoluteY(cycles, memory));     break;
                 // LDY
-                case INS_LDY_IM:
-                {
-                    Y = FetchByte(cycles, memory);
-                    LoadRegisterSetStatus(&CPU::Y);
-                } break;
-
-                case INS_LDY_ZP:
-                {
-                    auto address = FetchAddressZeroPage(cycles, memory);
-                    Y = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::Y);
-                } break;
-
-                case INS_LDY_ZPX:
-                {
-                    auto address = FetchAddressZeroPageX(cycles, memory);
-                    Y = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::Y);
-                } break;
-
-                case INS_LDY_ABS:
-                {
-                    auto address = FetchAddressAbsolute(cycles, memory);
-                    Y = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::Y);
-                } break;
-
-                case INS_LDY_ABSX:
-                {
-                    auto address = FetchAddressAbsoluteX(cycles, memory);
-                    Y = ReadByte(cycles, address, memory);
-                    LoadRegisterSetStatus(&CPU::Y);
-                } break;
-
+                case INS_LDY_IM:    LoadRegisterImmediate(Y);                                   break;
+                case INS_LDY_ZP:    LoadRegister(Y, FetchAddressZeroPage(cycles, memory));      break;
+                case INS_LDY_ZPX:   LoadRegister(Y, FetchAddressZeroPageX(cycles, memory));     break;
+                case INS_LDY_ABS:   LoadRegister(Y, FetchAddressAbsolute(cycles, memory));      break;
+                case INS_LDY_ABSX:  LoadRegister(Y, FetchAddressAbsoluteX(cycles, memory));     break;
 
                 // JSR
                 case INS_JSR:
