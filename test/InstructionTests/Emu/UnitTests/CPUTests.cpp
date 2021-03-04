@@ -48,7 +48,7 @@ namespace Emu::UnitTests
 
         // Assert
         EXPECT_EQ(cyclesUsed, expectedCycles);
-        EXPECT_TRUE(cpu.CycleOverflow);
+        EXPECT_TRUE(cpu.DebugFlags.CycleOverflow);
     }
 
 
@@ -80,7 +80,7 @@ namespace Emu::UnitTests
 
         // Assert
         EXPECT_EQ(cyclesUsed, expectedCycles);
-        EXPECT_TRUE(cpu.UnhandledInstruction);
+        EXPECT_TRUE(cpu.DebugFlags.UnhandledInstruction);
     }
 
 }

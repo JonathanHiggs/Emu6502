@@ -6,39 +6,49 @@
 namespace Emu
 {
 
+    struct CPUStatusFlags
+    {
+        Byte CarryFlag : 1;
+        Byte ZeroFlag : 1;
+        Byte IRQDisableFlag : 1;    // Interrupt disable
+        Byte DecimalMode : 1;
+        Byte BreakCommand : 1;
+        Byte Unused : 1;
+        Byte OverflowFlag : 1;
+        Byte NegativeFlag : 1;
+    };
+
+    struct CPUDebugFlags
+    {
+        Byte UnhandledInstruction : 1;
+        Byte CycleOverflow : 1;
+    };
+
     struct CPU
     {
-        Word PC;
-        Word SP;
+        Word PC;        // Program Counter
+        Byte SP;        // Stack Pointer
+        Byte A, X, Y;   // Registers
 
-        // Registers
-        Byte A, X, Y;
-
-        Word CarryFlag : 1;
-        Word ZeroFlag : 1;
-        Word IRQDisableFlag : 1;
-        Word DecimalMode : 1;
-        Word BreakCommand : 1;
-        Word OverflowFlag : 1;
-        Word NegativeFlag : 1;
-        // Extra debug flags
-        Word UnhandledInstruction : 1;
-        Word CycleOverflow : 1;
-
-        void Reset(Memory & memory)
+        union
         {
-            PC = 0xFFFC;
-            SP = 0x0100;
+            Byte Status;
+            CPUStatusFlags StatusFlags;
+        };
 
-            CarryFlag = 0;
-            ZeroFlag = 0;
-            IRQDisableFlag = 0;
-            DecimalMode = 0;
-            BreakCommand = 0;
-            OverflowFlag = 0;
-            NegativeFlag = 0;
-            UnhandledInstruction = 0;
-            CycleOverflow = 0;
+        union
+        {
+            Byte DebugStatus;
+            CPUDebugFlags DebugFlags;
+        };
+
+        void Reset(Memory & memory, Word programCounter = 0xFFFC)
+        {
+            PC = programCounter;
+            SP = 0xFF;
+
+            Status = 0;
+            DebugStatus = 0;
 
             A = X = Y = 0;
 
@@ -146,11 +156,59 @@ namespace Emu
 
         inline void LoadRegisterSetStatus(Byte & reg)
         {
-            ZeroFlag = reg == 0;
-            NegativeFlag = (reg & 1 << 7) > 0;
+            StatusFlags.ZeroFlag = reg == 0;
+            StatusFlags.NegativeFlag = (reg & 1 << 7) > 0;
+        }
+
+        inline Word StackPointerAddress()
+        {
+            return 0x0100 | SP;
+        }
+
+        inline void PushWordToStack(uint32 & cycles, Word const value, Memory & memory)
+        {
+            // Note: Possible error if the stack is overflowing
+            Word stackAddress = StackPointerAddress() - 1;
+            WriteWord(cycles, stackAddress, value, memory);
+            SP -= 2;
+        }
+
+        inline Word PeekWordInStack(Memory & memory)
+        {
+            uint32 cycles = 0u;
+            Word stackAddress = StackPointerAddress() + 1;
+            return ReadWord(cycles, stackAddress, memory);
+        }
+
+        inline Word PopWordFromStack(uint32 & cycles, Memory & memory)
+        {
+            // Note: Possible error if the stack is overflowing
+            Word stackAddress = StackPointerAddress() + 1;
+            auto value = ReadWord(cycles, stackAddress, memory);
+            SP += 2;
+            return value;
+        }
+
+        inline void PushByteToStack(uint32 & cycles, Byte const value, Memory & memory)
+        {
+            auto stackAddress = StackPointerAddress();
+            WriteByte(cycles, stackAddress, value, memory);
+            --SP;
+        }
+
+        inline Byte PopByteFromStack(uint32 & cycles, Memory & memory)
+        {
+            auto stackAddress = StackPointerAddress();
+            auto value = ReadByte(cycles, stackAddress, memory);
+            --SP;
+            return value;
         }
 
         // opcodes
+        static constexpr Byte INS_JSR       = 0x20;
+
+        static constexpr Byte INS_RTS       = 0x60;
+
         static constexpr Byte INS_LDA_IM    = 0xA9;
         static constexpr Byte INS_LDA_ZP    = 0xA5;
         static constexpr Byte INS_LDA_ZPX   = 0xB5;
@@ -188,8 +246,6 @@ namespace Emu
         static constexpr Byte INS_STY_ZPX   = 0x94;
         static constexpr Byte INS_STY_ABS   = 0x8C;
 
-        static constexpr Byte INS_JSR       = 0x20;
-
 
         uint32 Execute(uint32 cycles, Memory & memory)
         {
@@ -216,7 +272,7 @@ namespace Emu
                 if (cycles > startCycles)
                 {
                     // Detect cycles overflow
-                    CycleOverflow = 1;
+                    DebugFlags.CycleOverflow = 1;
                     return startCycles - cycles;
                 }
 
@@ -266,16 +322,23 @@ namespace Emu
                 // JSR
                 case INS_JSR:
                 {
-                    auto address = FetchWord(cycles, memory);
-                    WriteWord(cycles, SP, PC - 1, memory);
-                    ++SP;
-                    PC = address;
+                    auto routineAddress = FetchAddressAbsolute(cycles, memory);
+                    PushWordToStack(cycles, PC - 1, memory);
+                    PC = routineAddress;
                     --cycles;
+                } break;
+
+                // RTS
+                case INS_RTS:
+                {
+                    auto returnAddress = PopWordFromStack(cycles, memory);
+                    PC = returnAddress + 1;
+                    cycles -= 3;
                 } break;
 
                 default:
                 {
-                    UnhandledInstruction = 1;
+                    DebugFlags.UnhandledInstruction = 1;
                     fmt::print("Instruction not handled: {:x}\n", instruction);
                     return startCycles - cycles;
                 }

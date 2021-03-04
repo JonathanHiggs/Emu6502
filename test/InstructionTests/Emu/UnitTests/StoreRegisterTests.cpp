@@ -25,16 +25,9 @@ namespace Emu::UnitTests
             uint32 cyclesUsed,
             uint32 cyclesExpected)
         {
-            EXPECT_EQ(cpu.CarryFlag,        initialCpu.CarryFlag);
-            EXPECT_EQ(cpu.ZeroFlag,         initialCpu.ZeroFlag);
-            EXPECT_EQ(cpu.IRQDisableFlag,   initialCpu.IRQDisableFlag);
-            EXPECT_EQ(cpu.DecimalMode,      initialCpu.DecimalMode);
-            EXPECT_EQ(cpu.BreakCommand,     initialCpu.BreakCommand);
-            EXPECT_EQ(cpu.OverflowFlag,     initialCpu.OverflowFlag);
-            EXPECT_EQ(cpu.NegativeFlag,     initialCpu.NegativeFlag);
-
-            ASSERT_FALSE(cpu.UnhandledInstruction);
-            ASSERT_FALSE(cpu.CycleOverflow);
+            EXPECT_EQ(cpu.Status, initialCpu.Status);
+            EXPECT_EQ(cpu.DebugStatus, initialCpu.DebugStatus);
+            EXPECT_EQ(cyclesUsed, cyclesExpected);
         }
 
 

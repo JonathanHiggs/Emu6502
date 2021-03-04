@@ -30,25 +30,25 @@ namespace Emu::UnitTests
             EXPECT_EQ(cpu.*reg, value);
 
             if (value == 0x00)
-                EXPECT_TRUE(cpu.ZeroFlag);
+                EXPECT_TRUE(cpu.StatusFlags.ZeroFlag);
             else
-                EXPECT_FALSE(cpu.ZeroFlag);
+                EXPECT_FALSE(cpu.StatusFlags.ZeroFlag);
 
             if (value >= 0x80)
-                EXPECT_TRUE(cpu.NegativeFlag);
+                EXPECT_TRUE(cpu.StatusFlags.NegativeFlag);
             else
-                EXPECT_FALSE(cpu.NegativeFlag);
+                EXPECT_FALSE(cpu.StatusFlags.NegativeFlag);
 
             EXPECT_EQ(cyclesUsed, expectedCycles);
 
-            EXPECT_EQ(cpu.CarryFlag,        initialCpu.CarryFlag);
-            EXPECT_EQ(cpu.IRQDisableFlag,   initialCpu.IRQDisableFlag);
-            EXPECT_EQ(cpu.DecimalMode,      initialCpu.DecimalMode);
-            EXPECT_EQ(cpu.BreakCommand,     initialCpu.BreakCommand);
-            EXPECT_EQ(cpu.OverflowFlag,     initialCpu.OverflowFlag);
+            EXPECT_EQ(cpu.StatusFlags.CarryFlag,        initialCpu.StatusFlags.CarryFlag);
+            EXPECT_EQ(cpu.StatusFlags.IRQDisableFlag,   initialCpu.StatusFlags.IRQDisableFlag);
+            EXPECT_EQ(cpu.StatusFlags.DecimalMode,      initialCpu.StatusFlags.DecimalMode);
+            EXPECT_EQ(cpu.StatusFlags.BreakCommand,     initialCpu.StatusFlags.BreakCommand);
+            EXPECT_EQ(cpu.StatusFlags.OverflowFlag,     initialCpu.StatusFlags.OverflowFlag);
 
-            ASSERT_FALSE(cpu.UnhandledInstruction);
-            ASSERT_FALSE(cpu.CycleOverflow);
+            ASSERT_FALSE(cpu.DebugFlags.UnhandledInstruction);
+            ASSERT_FALSE(cpu.DebugFlags.CycleOverflow);
         }
 
         void ImmediateTest(

@@ -1,6 +1,9 @@
 set(FILES
     Emu/UnitTests/CPUTests.cpp
+    Emu/UnitTests/JumpLocationTests.cpp
+    Emu/UnitTests/JumpSubroutineTests.cpp
     Emu/UnitTests/LoadRegisterTests.cpp
+    Emu/UnitTests/ReturnSubroutineTests.cpp
     Emu/UnitTests/StoreRegisterTests.cpp
     Emu/UnitTests/main.cpp
 )
