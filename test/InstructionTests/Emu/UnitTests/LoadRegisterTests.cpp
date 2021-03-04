@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <Emu/CPU.hpp>
-#include <Emu/Memory.hpp>
+
 
 namespace Emu::UnitTests
 {
@@ -21,7 +21,7 @@ namespace Emu::UnitTests
         { }
 
         void AssertRegisters(
-            CPU & initialCpu,
+            CPU const & initialCpu,
             Byte value,
             Byte CPU::* reg,
             uint32 cyclesUsed,
@@ -270,12 +270,12 @@ namespace Emu::UnitTests
         {
             // Arrange
             uint32 expectedCycles = 6u;
-            Byte offsetValue = 0x04;
-            Byte zeroPageAddress = 0x0002;
-            Word indexAddress = (Word)(zeroPageAddress + offsetValue);
+            Byte zeroPageAddress = 0x02;
+            Byte zeroPageOffset = 0x04;
+            Word indexAddress = (Word)(zeroPageAddress + zeroPageOffset);
             Word valueAddress = 0x4480;
 
-            cpu.X = offsetValue;
+            cpu.X = zeroPageOffset;
             memory.WriteByte(0xFFFC, CPU::INS_LDA_INDX);
             memory.WriteByte(0xFFFD, zeroPageAddress);
             memory.WriteWord(indexAddress, valueAddress);
@@ -305,14 +305,14 @@ namespace Emu::UnitTests
             // Arrange
             uint32 expectedCycles = crossPageBoundary ? 6u : 5u;
             Byte offsetValue = 0x04;
-            Word zeroPageAddress = 0x0002;
+            Byte zeroPageAddress = 0x02;
             Word indexAddress = crossPageBoundary ? 0x44FE : 0x4400;
             Word valueAddress = indexAddress + offsetValue;
 
             cpu.Y = offsetValue;
             memory.WriteByte(0xFFFC, CPU::INS_LDA_INDY);
-            memory.WriteByte(0xFFFD, (Byte)zeroPageAddress);
-            memory.WriteWord(zeroPageAddress, indexAddress);
+            memory.WriteByte(0xFFFD, zeroPageAddress);
+            memory.WriteWord((Word)zeroPageAddress, indexAddress);
             memory.WriteByte(valueAddress, value);
 
             CPU initial = cpu;

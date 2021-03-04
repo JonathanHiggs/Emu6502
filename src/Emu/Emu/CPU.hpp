@@ -58,18 +58,18 @@ namespace Emu
             return FetchWord(cycles, memory);
         }
 
-        inline Word FetchAddressAbsoluteX(uint32 & cycles, Memory const & memory)
+        inline Word FetchAddressAbsoluteX(uint32 & cycles, Memory const & memory, bool useCycleAnyway = false)
         {
             auto address = FetchAddressAbsolute(cycles, memory);
-            cycles -= ((address & 0xFF) + X) > 0xFF ? 1 : 0;
+            cycles -= useCycleAnyway || ((address & 0xFF) + X) > 0xFF ? 1 : 0;
             address += X;
             return address;
         }
 
-        inline Word FetchAddressAbsoluteY(uint32 & cycles, Memory const & memory)
+        inline Word FetchAddressAbsoluteY(uint32 & cycles, Memory const & memory, bool useCycleAnyway = false)
         {
             auto address = FetchAddressAbsolute(cycles, memory);
-            cycles -= ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
+            cycles -= useCycleAnyway || ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
             address += Y;
             return address;
         }
@@ -82,11 +82,11 @@ namespace Emu
             return ReadWord(cycles, zeroPageAddress, memory);
         }
 
-        inline Word FetchAddressIndirectY(uint32 & cycles, Memory const & memory)
+        inline Word FetchAddressIndirectY(uint32 & cycles, Memory const & memory, bool useCycleAnyway = false)
         {
             auto zeroPageAddress = FetchAddressZeroPage(cycles, memory);
             auto address = ReadWord(cycles, zeroPageAddress, memory);
-            cycles -= ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
+            cycles -= useCycleAnyway || ((address & 0xFF) + Y) > 0xFF ? 1 : 0;
             address += Y;
             return address;
         }
@@ -113,6 +113,12 @@ namespace Emu
             auto value = memory.ReadByte(address);
             --cycles;
             return value;
+        }
+
+        inline void WriteByte(uint32 & cycles, Word const address, Byte const value, Memory & memory)
+        {
+            memory.WriteByte(address, value);
+            cycles -= 1;
         }
 
         inline Word FetchWord(uint32 & cycles, Memory const & memory)
@@ -166,6 +172,21 @@ namespace Emu
         static constexpr Byte INS_LDY_ABS   = 0xAC;
         static constexpr Byte INS_LDY_ABSX  = 0xBC;
 
+        static constexpr Byte INS_STA_ZP    = 0x85;
+        static constexpr Byte INS_STA_ZPX   = 0x95;
+        static constexpr Byte INS_STA_ABS   = 0x8D;
+        static constexpr Byte INS_STA_ABSX  = 0x9D;
+        static constexpr Byte INS_STA_ABSY  = 0x99;
+        static constexpr Byte INS_STA_INDX  = 0x81;
+        static constexpr Byte INS_STA_INDY  = 0x91;
+
+        static constexpr Byte INS_STX_ZP    = 0x86;
+        static constexpr Byte INS_STX_ZPY   = 0x96;
+        static constexpr Byte INS_STX_ABS   = 0x8E;
+
+        static constexpr Byte INS_STY_ZP    = 0x84;
+        static constexpr Byte INS_STY_ZPX   = 0x94;
+        static constexpr Byte INS_STY_ABS   = 0x8C;
 
         static constexpr Byte INS_JSR       = 0x20;
 
@@ -185,6 +206,9 @@ namespace Emu
                 LoadRegisterSetStatus(reg);
             };
 
+            auto StoreRegister = [&cycles, &memory, this](Byte & reg, Word const & address)
+            { WriteByte(cycles, address, reg, memory); };
+
             uint32 startCycles = cycles;
 
             while (cycles > 0)
@@ -201,26 +225,43 @@ namespace Emu
                 switch (instruction)
                 {
                 // Load Register
-                case INS_LDA_IM:    LoadRegisterImmediate(A);                                   break;
-                case INS_LDA_ZP:    LoadRegister(A, FetchAddressZeroPage(cycles, memory));      break;
-                case INS_LDA_ZPX:   LoadRegister(A, FetchAddressZeroPageX(cycles, memory));     break;
-                case INS_LDA_ABS:   LoadRegister(A, FetchAddressAbsolute(cycles, memory));      break;
-                case INS_LDA_ABSX:  LoadRegister(A, FetchAddressAbsoluteX(cycles, memory));     break;
-                case INS_LDA_ABSY:  LoadRegister(A, FetchAddressAbsoluteY(cycles, memory));     break;
-                case INS_LDA_INDX:  LoadRegister(A, FetchAddressIndirectX(cycles, memory));     break;
-                case INS_LDA_INDY:  LoadRegister(A, FetchAddressIndirectY(cycles, memory));     break;
+                case INS_LDA_IM:    LoadRegisterImmediate(A);                                       break;
+                case INS_LDA_ZP:    LoadRegister(A, FetchAddressZeroPage(cycles, memory));          break;
+                case INS_LDA_ZPX:   LoadRegister(A, FetchAddressZeroPageX(cycles, memory));         break;
+                case INS_LDA_ABS:   LoadRegister(A, FetchAddressAbsolute(cycles, memory));          break;
+                case INS_LDA_ABSX:  LoadRegister(A, FetchAddressAbsoluteX(cycles, memory));         break;
+                case INS_LDA_ABSY:  LoadRegister(A, FetchAddressAbsoluteY(cycles, memory));         break;
+                case INS_LDA_INDX:  LoadRegister(A, FetchAddressIndirectX(cycles, memory));         break;
+                case INS_LDA_INDY:  LoadRegister(A, FetchAddressIndirectY(cycles, memory));         break;
                 // LDX
-                case INS_LDX_IM:    LoadRegisterImmediate(X);                                   break;
-                case INS_LDX_ZP:    LoadRegister(X, FetchAddressZeroPage(cycles, memory));      break;
-                case INS_LDX_ZPY:   LoadRegister(X, FetchAddressZeroPageY(cycles, memory));     break;
-                case INS_LDX_ABS:   LoadRegister(X, FetchAddressAbsolute(cycles, memory));      break;
-                case INS_LDX_ABSY:  LoadRegister(X, FetchAddressAbsoluteY(cycles, memory));     break;
+                case INS_LDX_IM:    LoadRegisterImmediate(X);                                       break;
+                case INS_LDX_ZP:    LoadRegister(X, FetchAddressZeroPage(cycles, memory));          break;
+                case INS_LDX_ZPY:   LoadRegister(X, FetchAddressZeroPageY(cycles, memory));         break;
+                case INS_LDX_ABS:   LoadRegister(X, FetchAddressAbsolute(cycles, memory));          break;
+                case INS_LDX_ABSY:  LoadRegister(X, FetchAddressAbsoluteY(cycles, memory));         break;
                 // LDY
-                case INS_LDY_IM:    LoadRegisterImmediate(Y);                                   break;
-                case INS_LDY_ZP:    LoadRegister(Y, FetchAddressZeroPage(cycles, memory));      break;
-                case INS_LDY_ZPX:   LoadRegister(Y, FetchAddressZeroPageX(cycles, memory));     break;
-                case INS_LDY_ABS:   LoadRegister(Y, FetchAddressAbsolute(cycles, memory));      break;
-                case INS_LDY_ABSX:  LoadRegister(Y, FetchAddressAbsoluteX(cycles, memory));     break;
+                case INS_LDY_IM:    LoadRegisterImmediate(Y);                                       break;
+                case INS_LDY_ZP:    LoadRegister(Y, FetchAddressZeroPage(cycles, memory));          break;
+                case INS_LDY_ZPX:   LoadRegister(Y, FetchAddressZeroPageX(cycles, memory));         break;
+                case INS_LDY_ABS:   LoadRegister(Y, FetchAddressAbsolute(cycles, memory));          break;
+                case INS_LDY_ABSX:  LoadRegister(Y, FetchAddressAbsoluteX(cycles, memory));         break;
+
+                // StoreRegister
+                case INS_STA_ZP:    StoreRegister(A, FetchAddressZeroPage(cycles, memory));         break;
+                case INS_STA_ZPX:   StoreRegister(A, FetchAddressZeroPageX(cycles, memory));        break;
+                case INS_STA_ABS:   StoreRegister(A, FetchAddressAbsolute(cycles, memory));         break;
+                case INS_STA_ABSX:  StoreRegister(A, FetchAddressAbsoluteX(cycles, memory, true));  break;
+                case INS_STA_ABSY:  StoreRegister(A, FetchAddressAbsoluteY(cycles, memory, true));  break;
+                case INS_STA_INDX:  StoreRegister(A, FetchAddressIndirectX(cycles, memory));        break;
+                case INS_STA_INDY:  StoreRegister(A, FetchAddressIndirectY(cycles, memory, true));  break;
+
+                case INS_STX_ZP:    StoreRegister(X, FetchAddressZeroPage(cycles, memory));         break;
+                case INS_STX_ZPY:   StoreRegister(X, FetchAddressZeroPageY(cycles, memory));        break;
+                case INS_STX_ABS:   StoreRegister(X, FetchAddressAbsolute(cycles, memory));         break;
+
+                case INS_STY_ZP:    StoreRegister(Y, FetchAddressZeroPage(cycles, memory));         break;
+                case INS_STY_ZPX:   StoreRegister(Y, FetchAddressZeroPageX(cycles, memory));        break;
+                case INS_STY_ABS:   StoreRegister(Y, FetchAddressAbsolute(cycles, memory));         break;
 
                 // JSR
                 case INS_JSR:
