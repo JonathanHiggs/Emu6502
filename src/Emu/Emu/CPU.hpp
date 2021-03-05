@@ -207,6 +207,9 @@ namespace Emu
         // opcodes
         static constexpr Byte INS_JSR       = 0x20;
 
+        static constexpr Byte INS_JMP_ABS   = 0x4C;
+        static constexpr Byte INS_JMP_IND   = 0x6C;
+
         static constexpr Byte INS_RTS       = 0x60;
 
         static constexpr Byte INS_LDA_IM    = 0xA9;
@@ -327,6 +330,11 @@ namespace Emu
                     PC = routineAddress;
                     --cycles;
                 } break;
+
+
+                // JMP
+                case INS_JMP_ABS:   PC = FetchAddressAbsolute(cycles, memory);                              break;
+                case INS_JMP_IND:   PC = ReadWord(cycles, FetchAddressAbsolute(cycles, memory), memory);    break;
 
                 // RTS
                 case INS_RTS:
