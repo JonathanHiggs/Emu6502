@@ -214,6 +214,24 @@ namespace Emu
         }
 
         // opcodes
+        static constexpr Byte INS_AND_IM    = 0x29;
+        static constexpr Byte INS_AND_ZP    = 0x25;
+        static constexpr Byte INS_AND_ZPX   = 0x35;
+        static constexpr Byte INS_AND_ABS   = 0x2D;
+        static constexpr Byte INS_AND_ABSX  = 0x3D;
+        static constexpr Byte INS_AND_ABSY  = 0x39;
+        static constexpr Byte INS_AND_INDX  = 0x21;
+        static constexpr Byte INS_AND_INDY  = 0x31;
+
+        static constexpr Byte INS_EOR_IM    = 0x49;
+        static constexpr Byte INS_EOR_ZP    = 0x45;
+        static constexpr Byte INS_EOR_ZPX   = 0x55;
+        static constexpr Byte INS_EOR_ABS   = 0x4D;
+        static constexpr Byte INS_EOR_ABSX  = 0x5D;
+        static constexpr Byte INS_EOR_ABSY  = 0x59;
+        static constexpr Byte INS_EOR_INDX  = 0x41;
+        static constexpr Byte INS_EOR_INDY  = 0x51;
+
         static constexpr Byte INS_JMP_ABS   = 0x4C;
         static constexpr Byte INS_JMP_IND   = 0x6C;
 
@@ -239,6 +257,15 @@ namespace Emu
         static constexpr Byte INS_LDY_ZPX   = 0xB4;
         static constexpr Byte INS_LDY_ABS   = 0xAC;
         static constexpr Byte INS_LDY_ABSX  = 0xBC;
+
+        static constexpr Byte INS_ORA_IM    = 0x09;
+        static constexpr Byte INS_ORA_ZP    = 0x05;
+        static constexpr Byte INS_ORA_ZPX   = 0x15;
+        static constexpr Byte INS_ORA_ABS   = 0x0D;
+        static constexpr Byte INS_ORA_ABSX  = 0x1D;
+        static constexpr Byte INS_ORA_ABSY  = 0x19;
+        static constexpr Byte INS_ORA_INDX  = 0x01;
+        static constexpr Byte INS_ORA_INDY  = 0x11;
 
         static constexpr Byte INS_PHA       = 0x48;
         static constexpr Byte INS_PHP       = 0x08;
@@ -268,23 +295,25 @@ namespace Emu
         static constexpr Byte INS_TXS       = 0x9A;
 
 
+        inline static Byte OpAND(Byte a, Byte b) { return a & b; }
+        inline static Byte OpORA(Byte a, Byte b) { return a | b; }
+        inline static Byte OpEOR(Byte a, Byte b) { return a ^ b; }
+
+
         uint32 Execute(uint32 cycles, Memory & memory)
         {
             auto LoadRegisterImmediate = [&cycles, &memory, this](Byte & reg)
-            {
-                reg = FetchByte(cycles, memory);
-                LoadRegisterSetStatus(reg);
-            };
+            { LoadRegisterSetStatus(reg = FetchByte(cycles, memory)); };
 
             /* Load a register from the address */
             auto LoadRegister = [&cycles, &memory, this](Byte & reg, Word const & address)
-            {
-                reg = ReadByte(cycles, address, memory);
-                LoadRegisterSetStatus(reg);
-            };
+            { LoadRegisterSetStatus(reg = ReadByte(cycles, address, memory)); };
 
             auto StoreRegister = [&cycles, &memory, this](Byte & reg, Word const & address)
             { WriteByte(cycles, address, reg, memory); };
+
+            auto LogicalOp = [&cycles, &memory, this](Word const & address, Byte (*op)(Byte, Byte))
+            { LoadRegisterSetStatus(A = op(A, ReadByte(cycles, address, memory))); };
 
             uint32 startCycles = cycles;
 
@@ -301,6 +330,24 @@ namespace Emu
 
                 switch (instruction)
                 {
+                case INS_AND_IM:    A = A & FetchByte(cycles, memory); LoadRegisterSetStatus(A);            break;
+                case INS_AND_ZP:    LogicalOp(FetchAddressZeroPage(cycles, memory), OpAND);                 break;
+                case INS_AND_ZPX:   LogicalOp(FetchAddressZeroPageX(cycles, memory), OpAND);                break;
+                case INS_AND_ABS:   LogicalOp(FetchAddressAbsolute(cycles, memory), OpAND);                 break;
+                case INS_AND_ABSX:  LogicalOp(FetchAddressAbsoluteX(cycles, memory), OpAND);                break;
+                case INS_AND_ABSY:  LogicalOp(FetchAddressAbsoluteY(cycles, memory), OpAND);                break;
+                case INS_AND_INDX:  LogicalOp(FetchAddressIndirectX(cycles, memory), OpAND);                break;
+                case INS_AND_INDY:  LogicalOp(FetchAddressIndirectY(cycles, memory), OpAND);                break;
+
+                case INS_EOR_IM:    A = A ^ FetchByte(cycles, memory); LoadRegisterSetStatus(A);            break;
+                case INS_EOR_ZP:    LogicalOp(FetchAddressZeroPage(cycles, memory), OpEOR);                 break;
+                case INS_EOR_ZPX:   LogicalOp(FetchAddressZeroPageX(cycles, memory), OpEOR);                break;
+                case INS_EOR_ABS:   LogicalOp(FetchAddressAbsolute(cycles, memory), OpEOR);                 break;
+                case INS_EOR_ABSX:  LogicalOp(FetchAddressAbsoluteX(cycles, memory), OpEOR);                break;
+                case INS_EOR_ABSY:  LogicalOp(FetchAddressAbsoluteY(cycles, memory), OpEOR);                break;
+                case INS_EOR_INDX:  LogicalOp(FetchAddressIndirectX(cycles, memory), OpEOR);                break;
+                case INS_EOR_INDY:  LogicalOp(FetchAddressIndirectY(cycles, memory), OpEOR);                break;
+
                 case INS_JMP_ABS:   PC = FetchAddressAbsolute(cycles, memory);                              break;
                 case INS_JMP_IND:   PC = ReadWord(cycles, FetchAddressAbsolute(cycles, memory), memory);    break;
 
@@ -312,7 +359,6 @@ namespace Emu
                     --cycles;
                 } break;
 
-                // Load Register
                 case INS_LDA_IM:    LoadRegisterImmediate(A);                                               break;
                 case INS_LDA_ZP:    LoadRegister(A, FetchAddressZeroPage(cycles, memory));                  break;
                 case INS_LDA_ZPX:   LoadRegister(A, FetchAddressZeroPageX(cycles, memory));                 break;
@@ -321,18 +367,27 @@ namespace Emu
                 case INS_LDA_ABSY:  LoadRegister(A, FetchAddressAbsoluteY(cycles, memory));                 break;
                 case INS_LDA_INDX:  LoadRegister(A, FetchAddressIndirectX(cycles, memory));                 break;
                 case INS_LDA_INDY:  LoadRegister(A, FetchAddressIndirectY(cycles, memory));                 break;
-                // LDX
+
                 case INS_LDX_IM:    LoadRegisterImmediate(X);                                               break;
                 case INS_LDX_ZP:    LoadRegister(X, FetchAddressZeroPage(cycles, memory));                  break;
                 case INS_LDX_ZPY:   LoadRegister(X, FetchAddressZeroPageY(cycles, memory));                 break;
                 case INS_LDX_ABS:   LoadRegister(X, FetchAddressAbsolute(cycles, memory));                  break;
                 case INS_LDX_ABSY:  LoadRegister(X, FetchAddressAbsoluteY(cycles, memory));                 break;
-                // LDY
+
                 case INS_LDY_IM:    LoadRegisterImmediate(Y);                                               break;
                 case INS_LDY_ZP:    LoadRegister(Y, FetchAddressZeroPage(cycles, memory));                  break;
                 case INS_LDY_ZPX:   LoadRegister(Y, FetchAddressZeroPageX(cycles, memory));                 break;
                 case INS_LDY_ABS:   LoadRegister(Y, FetchAddressAbsolute(cycles, memory));                  break;
                 case INS_LDY_ABSX:  LoadRegister(Y, FetchAddressAbsoluteX(cycles, memory));                 break;
+
+                case INS_ORA_IM:    A = A | FetchByte(cycles, memory); LoadRegisterSetStatus(A);            break;
+                case INS_ORA_ZP:    LogicalOp(FetchAddressZeroPage(cycles, memory), OpORA);                 break;
+                case INS_ORA_ZPX:   LogicalOp(FetchAddressZeroPageX(cycles, memory), OpORA);                break;
+                case INS_ORA_ABS:   LogicalOp(FetchAddressAbsolute(cycles, memory), OpORA);                 break;
+                case INS_ORA_ABSX:  LogicalOp(FetchAddressAbsoluteX(cycles, memory), OpORA);                break;
+                case INS_ORA_ABSY:  LogicalOp(FetchAddressAbsoluteY(cycles, memory), OpORA);                break;
+                case INS_ORA_INDX:  LogicalOp(FetchAddressIndirectX(cycles, memory), OpORA);                break;
+                case INS_ORA_INDY:  LogicalOp(FetchAddressIndirectY(cycles, memory), OpORA);                break;
 
                 case INS_PHA:       PushByteToStack(--cycles, A, memory);                                   break;
                 case INS_PHP:       PushByteToStack(--cycles, Status, memory);                              break;
@@ -341,7 +396,6 @@ namespace Emu
 
                 case INS_RTS:       PC = PopWordFromStack(cycles, memory) + 1;                              break;
 
-                // StoreRegister
                 case INS_STA_ZP:    StoreRegister(A, FetchAddressZeroPage(cycles, memory));                 break;
                 case INS_STA_ZPX:   StoreRegister(A, FetchAddressZeroPageX(cycles, memory));                break;
                 case INS_STA_ABS:   StoreRegister(A, FetchAddressAbsolute(cycles, memory));                 break;

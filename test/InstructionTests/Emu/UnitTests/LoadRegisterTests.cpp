@@ -51,10 +51,12 @@ namespace Emu::UnitTests
             ASSERT_FALSE(cpu.DebugFlags.CycleOverflow);
         }
 
+
+        // ToDo: extra tests taking some inital state for cpu flags
         void ImmediateTest(
             Byte opCode,
             Byte CPU::* resultRegister,
-            uint32 expectedCycles,
+            uint32 expectedCycles,      // ToDo: remove parameter
             Byte value)
         {
             // Arrange
@@ -70,6 +72,7 @@ namespace Emu::UnitTests
             AssertRegisters(initial, value, resultRegister, cyclesUsed, expectedCycles);
         }
 
+        // ToDo: remove indirection
         void Immediate_WithPositiveValue(Byte opCode, Byte CPU::* resultRegister)
         { ImmediateTest(opCode, resultRegister, 2u, 0x23); }
 
@@ -225,6 +228,7 @@ namespace Emu::UnitTests
         { AbsoluteXTest(opCode, resultRegister, 5u, 0x01, true); }
 
 
+        // ToDo: collapse with ASBX by take in the offset register
         void AbsoluteYTest(
             Byte opCode,
             Byte CPU::* resultRegister,

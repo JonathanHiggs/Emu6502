@@ -3,6 +3,7 @@ set(FILES
     Emu/UnitTests/JumpLocationTests.cpp
     Emu/UnitTests/JumpSubroutineTests.cpp
     Emu/UnitTests/LoadRegisterTests.cpp
+    Emu/UnitTests/LogicalTests.cpp
     Emu/UnitTests/ReturnSubroutineTests.cpp
     Emu/UnitTests/StackOperationTests.cpp
     Emu/UnitTests/StoreRegisterTests.cpp
