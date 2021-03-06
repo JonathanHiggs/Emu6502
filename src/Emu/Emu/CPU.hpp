@@ -101,6 +101,11 @@ namespace Emu
             return address;
         }
 
+        inline Word FetchAddressImmediate(uint32 & cycles, Memory const & memory)
+        {
+            return PC++;
+        }
+
         inline Word FetchAddressZeroPage(uint32 & cycles, Memory const & memory)
         {
             return FetchByte(cycles, memory);
@@ -302,18 +307,21 @@ namespace Emu
 
         uint32 Execute(uint32 cycles, Memory & memory)
         {
-            auto LoadRegisterImmediate = [&cycles, &memory, this](Byte & reg)
-            { LoadRegisterSetStatus(reg = FetchByte(cycles, memory)); };
-
-            /* Load a register from the address */
+            // https://www.youtube.com/watch?v=tDlcpoNNQEo&ab_channel=Teddybearearth
             auto LoadRegister = [&cycles, &memory, this](Byte & reg, Word const & address)
             { LoadRegisterSetStatus(reg = ReadByte(cycles, address, memory)); };
 
             auto StoreRegister = [&cycles, &memory, this](Byte & reg, Word const & address)
             { WriteByte(cycles, address, reg, memory); };
 
-            auto LogicalOp = [&cycles, &memory, this](Word const & address, Byte (*op)(Byte, Byte))
-            { LoadRegisterSetStatus(A = op(A, ReadByte(cycles, address, memory))); };
+            auto And = [&cycles, &memory, this](Word const & address)
+            { LoadRegisterSetStatus(A &= ReadByte(cycles, address, memory)); };
+
+            auto Or = [&cycles, &memory, this](Word const & address)
+            { LoadRegisterSetStatus(A |= ReadByte(cycles, address, memory)); };
+
+            auto Xor = [&cycles, &memory, this](Word const & address)
+            { LoadRegisterSetStatus(A ^= ReadByte(cycles, address, memory)); };
 
             uint32 startCycles = cycles;
 
@@ -330,23 +338,23 @@ namespace Emu
 
                 switch (instruction)
                 {
-                case INS_AND_IM:    A = A & FetchByte(cycles, memory); LoadRegisterSetStatus(A);            break;
-                case INS_AND_ZP:    LogicalOp(FetchAddressZeroPage(cycles, memory), OpAND);                 break;
-                case INS_AND_ZPX:   LogicalOp(FetchAddressZeroPageX(cycles, memory), OpAND);                break;
-                case INS_AND_ABS:   LogicalOp(FetchAddressAbsolute(cycles, memory), OpAND);                 break;
-                case INS_AND_ABSX:  LogicalOp(FetchAddressAbsoluteX(cycles, memory), OpAND);                break;
-                case INS_AND_ABSY:  LogicalOp(FetchAddressAbsoluteY(cycles, memory), OpAND);                break;
-                case INS_AND_INDX:  LogicalOp(FetchAddressIndirectX(cycles, memory), OpAND);                break;
-                case INS_AND_INDY:  LogicalOp(FetchAddressIndirectY(cycles, memory), OpAND);                break;
+                case INS_AND_IM:    And(FetchAddressImmediate(cycles, memory));                             break;
+                case INS_AND_ZP:    And(FetchAddressZeroPage(cycles, memory));                              break;
+                case INS_AND_ZPX:   And(FetchAddressZeroPageX(cycles, memory));                             break;
+                case INS_AND_ABS:   And(FetchAddressAbsolute(cycles, memory));                              break;
+                case INS_AND_ABSX:  And(FetchAddressAbsoluteX(cycles, memory));                             break;
+                case INS_AND_ABSY:  And(FetchAddressAbsoluteY(cycles, memory));                             break;
+                case INS_AND_INDX:  And(FetchAddressIndirectX(cycles, memory));                             break;
+                case INS_AND_INDY:  And(FetchAddressIndirectY(cycles, memory));                             break;
 
-                case INS_EOR_IM:    A = A ^ FetchByte(cycles, memory); LoadRegisterSetStatus(A);            break;
-                case INS_EOR_ZP:    LogicalOp(FetchAddressZeroPage(cycles, memory), OpEOR);                 break;
-                case INS_EOR_ZPX:   LogicalOp(FetchAddressZeroPageX(cycles, memory), OpEOR);                break;
-                case INS_EOR_ABS:   LogicalOp(FetchAddressAbsolute(cycles, memory), OpEOR);                 break;
-                case INS_EOR_ABSX:  LogicalOp(FetchAddressAbsoluteX(cycles, memory), OpEOR);                break;
-                case INS_EOR_ABSY:  LogicalOp(FetchAddressAbsoluteY(cycles, memory), OpEOR);                break;
-                case INS_EOR_INDX:  LogicalOp(FetchAddressIndirectX(cycles, memory), OpEOR);                break;
-                case INS_EOR_INDY:  LogicalOp(FetchAddressIndirectY(cycles, memory), OpEOR);                break;
+                case INS_EOR_IM:    Xor(FetchAddressImmediate(cycles, memory));                             break;
+                case INS_EOR_ZP:    Xor(FetchAddressZeroPage(cycles, memory));                              break;
+                case INS_EOR_ZPX:   Xor(FetchAddressZeroPageX(cycles, memory));                             break;
+                case INS_EOR_ABS:   Xor(FetchAddressAbsolute(cycles, memory));                              break;
+                case INS_EOR_ABSX:  Xor(FetchAddressAbsoluteX(cycles, memory));                             break;
+                case INS_EOR_ABSY:  Xor(FetchAddressAbsoluteY(cycles, memory));                             break;
+                case INS_EOR_INDX:  Xor(FetchAddressIndirectX(cycles, memory));                             break;
+                case INS_EOR_INDY:  Xor(FetchAddressIndirectY(cycles, memory));                             break;
 
                 case INS_JMP_ABS:   PC = FetchAddressAbsolute(cycles, memory);                              break;
                 case INS_JMP_IND:   PC = ReadWord(cycles, FetchAddressAbsolute(cycles, memory), memory);    break;
@@ -359,7 +367,7 @@ namespace Emu
                     --cycles;
                 } break;
 
-                case INS_LDA_IM:    LoadRegisterImmediate(A);                                               break;
+                case INS_LDA_IM:    LoadRegister(A, FetchAddressImmediate(cycles, memory));                 break;
                 case INS_LDA_ZP:    LoadRegister(A, FetchAddressZeroPage(cycles, memory));                  break;
                 case INS_LDA_ZPX:   LoadRegister(A, FetchAddressZeroPageX(cycles, memory));                 break;
                 case INS_LDA_ABS:   LoadRegister(A, FetchAddressAbsolute(cycles, memory));                  break;
@@ -368,26 +376,26 @@ namespace Emu
                 case INS_LDA_INDX:  LoadRegister(A, FetchAddressIndirectX(cycles, memory));                 break;
                 case INS_LDA_INDY:  LoadRegister(A, FetchAddressIndirectY(cycles, memory));                 break;
 
-                case INS_LDX_IM:    LoadRegisterImmediate(X);                                               break;
+                case INS_LDX_IM:    LoadRegister(X, FetchAddressImmediate(cycles, memory));                 break;
                 case INS_LDX_ZP:    LoadRegister(X, FetchAddressZeroPage(cycles, memory));                  break;
                 case INS_LDX_ZPY:   LoadRegister(X, FetchAddressZeroPageY(cycles, memory));                 break;
                 case INS_LDX_ABS:   LoadRegister(X, FetchAddressAbsolute(cycles, memory));                  break;
                 case INS_LDX_ABSY:  LoadRegister(X, FetchAddressAbsoluteY(cycles, memory));                 break;
 
-                case INS_LDY_IM:    LoadRegisterImmediate(Y);                                               break;
+                case INS_LDY_IM:    LoadRegister(Y, FetchAddressImmediate(cycles, memory));                 break;
                 case INS_LDY_ZP:    LoadRegister(Y, FetchAddressZeroPage(cycles, memory));                  break;
                 case INS_LDY_ZPX:   LoadRegister(Y, FetchAddressZeroPageX(cycles, memory));                 break;
                 case INS_LDY_ABS:   LoadRegister(Y, FetchAddressAbsolute(cycles, memory));                  break;
                 case INS_LDY_ABSX:  LoadRegister(Y, FetchAddressAbsoluteX(cycles, memory));                 break;
 
-                case INS_ORA_IM:    A = A | FetchByte(cycles, memory); LoadRegisterSetStatus(A);            break;
-                case INS_ORA_ZP:    LogicalOp(FetchAddressZeroPage(cycles, memory), OpORA);                 break;
-                case INS_ORA_ZPX:   LogicalOp(FetchAddressZeroPageX(cycles, memory), OpORA);                break;
-                case INS_ORA_ABS:   LogicalOp(FetchAddressAbsolute(cycles, memory), OpORA);                 break;
-                case INS_ORA_ABSX:  LogicalOp(FetchAddressAbsoluteX(cycles, memory), OpORA);                break;
-                case INS_ORA_ABSY:  LogicalOp(FetchAddressAbsoluteY(cycles, memory), OpORA);                break;
-                case INS_ORA_INDX:  LogicalOp(FetchAddressIndirectX(cycles, memory), OpORA);                break;
-                case INS_ORA_INDY:  LogicalOp(FetchAddressIndirectY(cycles, memory), OpORA);                break;
+                case INS_ORA_IM:    Or(FetchAddressImmediate(cycles, memory));                              break;
+                case INS_ORA_ZP:    Or(FetchAddressZeroPage(cycles, memory));                               break;
+                case INS_ORA_ZPX:   Or(FetchAddressZeroPageX(cycles, memory));                              break;
+                case INS_ORA_ABS:   Or(FetchAddressAbsolute(cycles, memory));                               break;
+                case INS_ORA_ABSX:  Or(FetchAddressAbsoluteX(cycles, memory));                              break;
+                case INS_ORA_ABSY:  Or(FetchAddressAbsoluteY(cycles, memory));                              break;
+                case INS_ORA_INDX:  Or(FetchAddressIndirectX(cycles, memory));                              break;
+                case INS_ORA_INDY:  Or(FetchAddressIndirectY(cycles, memory));                              break;
 
                 case INS_PHA:       PushByteToStack(--cycles, A, memory);                                   break;
                 case INS_PHP:       PushByteToStack(--cycles, Status, memory);                              break;
