@@ -159,7 +159,7 @@ namespace Emu
             cycles -= 2;
         }
 
-        inline void LoadRegisterSetStatus(Byte & reg)
+        inline void LoadRegisterSetStatus(Byte reg)
         {
             StatusFlags.ZeroFlag = reg == 0;
             StatusFlags.NegativeFlag = (reg & 1 << 7) > 0;
@@ -227,6 +227,9 @@ namespace Emu
         static constexpr Byte INS_AND_ABSY  = 0x39;
         static constexpr Byte INS_AND_INDX  = 0x21;
         static constexpr Byte INS_AND_INDY  = 0x31;
+
+        static constexpr Byte INS_BIT_ZP    = 0x24;
+        static constexpr Byte INS_BIT_ABS   = 0x2C;
 
         static constexpr Byte INS_EOR_IM    = 0x49;
         static constexpr Byte INS_EOR_ZP    = 0x45;
@@ -299,12 +302,6 @@ namespace Emu
         static constexpr Byte INS_TSA       = 0x8A;
         static constexpr Byte INS_TXS       = 0x9A;
 
-
-        inline static Byte OpAND(Byte a, Byte b) { return a & b; }
-        inline static Byte OpORA(Byte a, Byte b) { return a | b; }
-        inline static Byte OpEOR(Byte a, Byte b) { return a ^ b; }
-
-
         uint32 Execute(uint32 cycles, Memory & memory)
         {
             // https://www.youtube.com/watch?v=tDlcpoNNQEo&ab_channel=Teddybearearth
@@ -316,6 +313,14 @@ namespace Emu
 
             auto And = [&cycles, &memory, this](Word const & address)
             { LoadRegisterSetStatus(A &= ReadByte(cycles, address, memory)); };
+
+            auto Bit = [&cycles, &memory, this](Word const & address)
+            { 
+                auto value = ReadByte(cycles, address, memory); 
+                StatusFlags.ZeroFlag = (A & value) == 0;
+                StatusFlags.OverflowFlag = (value & 1 << 6) > 0;
+                StatusFlags.NegativeFlag = (value & 1 << 7) > 0;
+            };
 
             auto Or = [&cycles, &memory, this](Word const & address)
             { LoadRegisterSetStatus(A |= ReadByte(cycles, address, memory)); };
@@ -346,6 +351,9 @@ namespace Emu
                 case INS_AND_ABSY:  And(FetchAddressAbsoluteY(cycles, memory));                             break;
                 case INS_AND_INDX:  And(FetchAddressIndirectX(cycles, memory));                             break;
                 case INS_AND_INDY:  And(FetchAddressIndirectY(cycles, memory));                             break;
+
+                case INS_BIT_ZP:    Bit(FetchAddressZeroPage(cycles, memory));                              break;
+                case INS_BIT_ABS:   Bit(FetchAddressAbsolute(cycles, memory));                              break;
 
                 case INS_EOR_IM:    Xor(FetchAddressImmediate(cycles, memory));                             break;
                 case INS_EOR_ZP:    Xor(FetchAddressZeroPage(cycles, memory));                              break;

@@ -270,6 +270,76 @@ namespace Emu::UnitTests
             AssertRegisters(initial, expectedValue);
         }
 
+        void TestBitOpZeroPage(Byte value, Byte pattern)
+        {
+            // Arrange
+            uint32 cyclesExpected = 3u;
+            bool zeroFlag = (value & pattern) == 0;
+            bool overflowFlag = (value & 1 << 6) > 0;
+            bool negativeFlag = (value & 1 << 7) > 0;
+            Word zeroPageAddress = 0x0042;
+
+            cpu.A = pattern;
+            memory.WriteByte(0xFFFC, CPU::INS_BIT_ZP);
+            memory.WriteByte(0xFFFD, (Byte)zeroPageAddress);
+            memory.WriteByte(zeroPageAddress, value);
+
+            CPU initial = cpu;
+
+            // Act
+            auto cyclesUsed = cpu.Execute(cyclesExpected, memory);
+
+            // Assert
+            EXPECT_EQ(cyclesUsed, cyclesExpected);
+
+            EXPECT_EQ(cpu.StatusFlags.ZeroFlag, zeroFlag);
+            EXPECT_EQ(cpu.StatusFlags.OverflowFlag, overflowFlag);
+            EXPECT_EQ(cpu.StatusFlags.NegativeFlag, negativeFlag);
+
+            EXPECT_EQ(cpu.StatusFlags.CarryFlag,        initial.StatusFlags.CarryFlag);
+            EXPECT_EQ(cpu.StatusFlags.IRQDisableFlag,   initial.StatusFlags.IRQDisableFlag);
+            EXPECT_EQ(cpu.StatusFlags.DecimalMode,      initial.StatusFlags.DecimalMode);
+            EXPECT_EQ(cpu.StatusFlags.BreakCommand,     initial.StatusFlags.BreakCommand);
+
+            ASSERT_FALSE(cpu.DebugFlags.UnhandledInstruction);
+            ASSERT_FALSE(cpu.DebugFlags.CycleOverflow);
+        }
+
+        void TestBitOpAbsolute(Byte value, Byte pattern)
+        {
+            // Arrange
+            uint32 cyclesExpected = 4u;
+            bool zeroFlag = (value & pattern) == 0;
+            bool overflowFlag = (value & 1 << 6) > 0;
+            bool negativeFlag = (value & 1 << 7) > 0;
+            Word address = 0x4480;
+
+            cpu.A = pattern;
+            memory.WriteByte(0xFFFC, CPU::INS_BIT_ABS);
+            memory.WriteWord(0xFFFD, address);
+            memory.WriteByte(address, value);
+
+            CPU initial = cpu;
+
+            // Act
+            auto cyclesUsed = cpu.Execute(cyclesExpected, memory);
+
+            // Assert
+            EXPECT_EQ(cyclesUsed, cyclesExpected);
+
+            EXPECT_EQ(cpu.StatusFlags.ZeroFlag, zeroFlag);
+            EXPECT_EQ(cpu.StatusFlags.OverflowFlag, overflowFlag);
+            EXPECT_EQ(cpu.StatusFlags.NegativeFlag, negativeFlag);
+
+            EXPECT_EQ(cpu.StatusFlags.CarryFlag,        initial.StatusFlags.CarryFlag);
+            EXPECT_EQ(cpu.StatusFlags.IRQDisableFlag,   initial.StatusFlags.IRQDisableFlag);
+            EXPECT_EQ(cpu.StatusFlags.DecimalMode,      initial.StatusFlags.DecimalMode);
+            EXPECT_EQ(cpu.StatusFlags.BreakCommand,     initial.StatusFlags.BreakCommand);
+
+            ASSERT_FALSE(cpu.DebugFlags.UnhandledInstruction);
+            ASSERT_FALSE(cpu.DebugFlags.CycleOverflow);
+        }
+
     };
 
 
@@ -698,5 +768,25 @@ namespace Emu::UnitTests
 
     TEST_F(LogicalFixture, INS_EOR_INDY_WithInitialFlags)
     { TestLogicalOpIndirectY(CPU::INS_EOR_INDY, 0x43, 0x80, OpEOR, false, 0xFF); }
+
+
+    TEST_F(LogicalFixture, INS_BIT_ZP_WithSelf)
+    { TestBitOpZeroPage(0xCC, 0xCC); }
+
+    TEST_F(LogicalFixture, INS_BIT_ZP_WithOne)
+    { TestBitOpZeroPage(0xCC, 0xFF); }
+
+    TEST_F(LogicalFixture, INS_BIT_ZP_WithZero)
+    { TestBitOpZeroPage(0xCC, 0x00); }
+
+
+    TEST_F(LogicalFixture, INS_BIT_ABS_WithSelf)
+    { TestBitOpAbsolute(0xCC, 0xCC); }
+
+    TEST_F(LogicalFixture, INS_BIT_ABS_WithOne)
+    { TestBitOpAbsolute(0xCC, 0xFF); }
+
+    TEST_F(LogicalFixture, INS_BIT_ABS_WithZero)
+    { TestBitOpAbsolute(0xCC, 0x00); }
 
 }
