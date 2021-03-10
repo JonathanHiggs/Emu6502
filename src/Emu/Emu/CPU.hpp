@@ -318,8 +318,9 @@ namespace Emu
             { 
                 auto value = ReadByte(cycles, address, memory); 
                 StatusFlags.ZeroFlag = (A & value) == 0;
-                StatusFlags.OverflowFlag = (value & 1 << 6) > 0;
-                StatusFlags.NegativeFlag = (value & 1 << 7) > 0;
+                Status = (value & 0b11000000) | (Status & 0b00111111);
+                //StatusFlags.OverflowFlag = (value & 1 << 6) > 0;
+                //StatusFlags.NegativeFlag = (value & 1 << 7) > 0;
             };
 
             auto Or = [&cycles, &memory, this](Word const & address)

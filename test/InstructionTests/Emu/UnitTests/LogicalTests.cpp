@@ -279,6 +279,9 @@ namespace Emu::UnitTests
             bool negativeFlag = (value & 1 << 7) > 0;
             Word zeroPageAddress = 0x0042;
 
+            cpu.StatusFlags.OverflowFlag = !overflowFlag;
+            cpu.StatusFlags.NegativeFlag = !negativeFlag;
+
             cpu.A = pattern;
             memory.WriteByte(0xFFFC, CPU::INS_BIT_ZP);
             memory.WriteByte(0xFFFD, (Byte)zeroPageAddress);
@@ -313,6 +316,9 @@ namespace Emu::UnitTests
             bool overflowFlag = (value & 1 << 6) > 0;
             bool negativeFlag = (value & 1 << 7) > 0;
             Word address = 0x4480;
+
+            cpu.StatusFlags.OverflowFlag = !overflowFlag;
+            cpu.StatusFlags.NegativeFlag = !negativeFlag;
 
             cpu.A = pattern;
             memory.WriteByte(0xFFFC, CPU::INS_BIT_ABS);
@@ -774,17 +780,20 @@ namespace Emu::UnitTests
     { TestBitOpZeroPage(0xCC, 0xCC); }
 
     TEST_F(LogicalFixture, INS_BIT_ZP_WithOne)
-    { TestBitOpZeroPage(0xCC, 0xFF); }
+    { TestBitOpZeroPage(0x39, 0xFF); }
 
     TEST_F(LogicalFixture, INS_BIT_ZP_WithZero)
-    { TestBitOpZeroPage(0xCC, 0x00); }
+    { TestBitOpZeroPage(0x42, 0x00); }
+
+    TEST_F(LogicalFixture, INS_BIT_ZP_CheckFlags)
+    { TestBitOpZeroPage(0x03, 0xB0); }
 
 
     TEST_F(LogicalFixture, INS_BIT_ABS_WithSelf)
     { TestBitOpAbsolute(0xCC, 0xCC); }
 
     TEST_F(LogicalFixture, INS_BIT_ABS_WithOne)
-    { TestBitOpAbsolute(0xCC, 0xFF); }
+    { TestBitOpAbsolute(0x39, 0xFF); }
 
     TEST_F(LogicalFixture, INS_BIT_ABS_WithZero)
     { TestBitOpAbsolute(0xCC, 0x00); }
